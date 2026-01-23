@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: JDBC:postgresql://localhost:5432/smart_ims
+    url: jdbc:postgresql://localhost:5432/smart_ims
     username: postgres
     password: root
     driver-class-name: org.postgresql.Driver
