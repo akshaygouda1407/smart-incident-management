@@ -16,6 +16,7 @@ target/
 # Spring Boot config
 **/application.yml
 **/application.properties
+.env
 
 
 ### Eclipse ###

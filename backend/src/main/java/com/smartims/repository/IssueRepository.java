@@ -1,4 +1,7 @@
 package com.smartims.repository;
 
-public class IssueRepository {
+import com.smartims.entity.Issue;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface IssueRepository extends JpaRepository<Issue, Long> {
 }
