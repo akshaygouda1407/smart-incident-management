@@ -13,6 +13,11 @@ target/
 *.iml
 *.ipr
 
+# Spring Boot config
+**/application.yml
+**/application.properties
+
+
 ### Eclipse ###
 .apt_generated
 .classpath
