@@ -1,6 +1,7 @@
 package com.smartims.controller;
 
 import com.smartims.dto.CreateIssueRequest;
+import com.smartims.dto.UpdateIssueStatusRequest;
 import com.smartims.service.IssueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +29,20 @@ public class IssueController {
         return "Issue created successfully";
     }
 
-    @PostMapping("/debug")
-    public Object debug(Authentication authentication) {
-        return authentication;
+    @PutMapping("/{id}/status")
+    public String updateIssueStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateIssueStatusRequest request,
+            Authentication authentication
+    ) {
+        String role = authentication.getAuthorities()
+                .iterator()
+                .next()
+                .getAuthority();
+
+        issueService.updateIssueStatus(id, request.getStatus(), role);
+
+        return "Issue status updated successfully";
     }
 
 }
