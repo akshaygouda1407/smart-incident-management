@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.smartims.dto.LoginRequest;
 import com.smartims.dto.LoginResponse;
-import java.util.Optional;
+import com.smartims.security.JwtService;
 
 
 @Service
@@ -19,6 +19,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Override
     public RegisterResponse registerUser(RegisterRequest request) {
@@ -45,18 +46,16 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid email or password"));
 
-        boolean passwordMatch = passwordEncoder.matches(
-                request.getPassword(),
-                user.getPassword()
-        );
-
-        if (!passwordMatch) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        return new LoginResponse(
-                "Login successful",
+        String token = jwtService.generateToken(
+                user.getEmail(),
                 user.getRole().name()
         );
+
+        return new LoginResponse(token, user.getRole().name());
     }
+
 }
