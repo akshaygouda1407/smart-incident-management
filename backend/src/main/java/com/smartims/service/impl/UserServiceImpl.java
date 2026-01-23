@@ -8,6 +8,10 @@ import com.smartims.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.smartims.dto.LoginRequest;
+import com.smartims.dto.LoginResponse;
+import java.util.Optional;
+
 
 @Service
 @RequiredArgsConstructor
@@ -33,5 +37,26 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
 
         return new RegisterResponse("User registered successfully");
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        boolean passwordMatch = passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        );
+
+        if (!passwordMatch) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        return new LoginResponse(
+                "Login successful",
+                user.getRole().name()
+        );
     }
 }
