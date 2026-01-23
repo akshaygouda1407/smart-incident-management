@@ -3,6 +3,8 @@ package com.smartims.service.impl;
 import com.smartims.dto.RegisterRequest;
 import com.smartims.dto.RegisterResponse;
 import com.smartims.entity.User;
+import com.smartims.exception.BadRequestException;
+import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.UserRepository;
 import com.smartims.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +27,7 @@ public class UserServiceImpl implements UserService {
     public RegisterResponse registerUser(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new BadRequestException("Email is already registered");
         }
 
         User user = User.builder()
@@ -44,11 +46,14 @@ public class UserServiceImpl implements UserService {
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() ->
+                        new UnauthorizedException("Invalid email or password")
+                );
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new UnauthorizedException("Invalid email or password");
         }
+
 
         String token = jwtService.generateToken(
                 user.getEmail(),
