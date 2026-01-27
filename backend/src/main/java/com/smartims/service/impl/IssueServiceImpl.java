@@ -30,13 +30,12 @@ public class IssueServiceImpl implements IssueService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .severity(request.getSeverity())
+                .priorityLevel(request.getPriorityLevel()) // 🔥 THIS LINE WAS MISSING
                 .status(IssueStatus.OPEN)
                 .createdBy(createdBy)
+                .createdAt(LocalDateTime.now())
+                .slaBreached(false)
                 .build();
-
-        issue.setCreatedAt(LocalDateTime.now());
-        issue.setSlaBreached(false);
-
 
         issueRepository.save(issue);
     }

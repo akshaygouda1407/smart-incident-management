@@ -4,18 +4,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
+@EnableScheduling
 @SpringBootApplication
-public class IncidentManagementApplication {
+public class SmartImsApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(IncidentManagementApplication.class, args);
-
-		@EnableScheduling
-		@SpringBootApplication
-        class SmartImsApplication {
-		}
-
+		SpringApplication.run(SmartImsApplication.class, args);
 	}
-
-
 }

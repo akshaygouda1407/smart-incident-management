@@ -1,5 +1,6 @@
 package com.smartims.controller;
 
+import com.smartims.dto.UpdateSlaPolicyRequest;
 import com.smartims.entity.SlaPolicy;
 import com.smartims.repository.SlaPolicyRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,21 @@ public class AdminSlaController {
     public SlaPolicy createPolicy(@RequestBody SlaPolicy policy) {
         return slaPolicyRepository.save(policy);
     }
+
+    @PutMapping("/{priorityLevel}")
+    public SlaPolicy updatePolicy(
+            @PathVariable String priorityLevel,
+            @RequestBody UpdateSlaPolicyRequest request) {
+
+        SlaPolicy policy = slaPolicyRepository.findByPriorityLevel(priorityLevel)
+                .orElseThrow(() ->
+                        new RuntimeException("SLA policy not found for priority " + priorityLevel)
+                );
+
+        policy.setResolutionTimeMinutes(request.getResolutionTimeMinutes());
+        return slaPolicyRepository.save(policy);
+    }
+
 
     @GetMapping
     public List<SlaPolicy> getAllPolicies() {

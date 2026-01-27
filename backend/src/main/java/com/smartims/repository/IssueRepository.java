@@ -16,6 +16,8 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
 
     long countByAssignedEngineer(User engineer);
 
+    List<Issue> findByStatus(IssueStatus status);
+
     @Query("SELECT i.status, COUNT(i) FROM Issue i GROUP BY i.status")
     List<Object[]> countByStatusGroup();
 
