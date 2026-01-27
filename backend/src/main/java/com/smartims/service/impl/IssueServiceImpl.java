@@ -17,6 +17,11 @@ public class IssueServiceImpl implements IssueService {
     private final IssueRepository issueRepository;
 
     @Override
+    public long countByStatus(IssueStatus status) {
+        return 0;
+    }
+
+    @Override
     public void createIssue(CreateIssueRequest request, String createdBy) {
 
         Issue issue = Issue.builder()

@@ -5,6 +5,8 @@ import com.smartims.enums.IssueStatus;
 
 public interface IssueService {
 
+    long countByStatus(IssueStatus status);
+
     void createIssue(CreateIssueRequest request, String createdBy);
 
     void updateIssueStatus(

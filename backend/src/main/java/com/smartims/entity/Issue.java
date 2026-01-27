@@ -34,4 +34,9 @@ public class Issue {
 
     @Column(nullable = false)
     private String createdBy; // email from JWT
+
+    private String priorityLevel;
+    @ManyToOne
+    @JoinColumn(name = "assigned_engineer_id")
+    private User assignedEngineer;
 }
