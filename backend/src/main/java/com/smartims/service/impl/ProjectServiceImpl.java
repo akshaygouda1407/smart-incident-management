@@ -6,6 +6,7 @@ import com.smartims.entity.Project;
 import com.smartims.entity.User;
 import com.smartims.repository.ProjectRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -21,6 +22,8 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+
 
     @Override
     public ProjectResponse createProject(CreateProjectRequest request) {
@@ -38,6 +41,14 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
 
         projectRepository.save(project);
+
+        auditLogService.log(
+                "CREATE_PROJECT",
+                "PROJECT",
+                project.getId(),
+                "Project created with manager " + project.getManager().getEmail()
+        );
+
 
         return mapToResponse(project);
     }

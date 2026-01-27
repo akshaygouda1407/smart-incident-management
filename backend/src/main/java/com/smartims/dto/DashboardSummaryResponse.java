@@ -17,6 +17,7 @@ public class DashboardSummaryResponse {
     }
 
     public void setOpenIssues(long l) {
+
     }
 
     public void setInProgressIssues(long l) {

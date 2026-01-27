@@ -10,6 +10,7 @@ import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.ProjectRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,8 @@ public class IssueServiceImpl implements IssueService {
     private final IssueRepository issueRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+
 
     @Override
     public long countByStatus(IssueStatus status) {
@@ -59,6 +62,14 @@ public class IssueServiceImpl implements IssueService {
                 .build();
 
         issueRepository.save(issue);
+
+        auditLogService.log(
+                "CREATE_ISSUE",
+                "ISSUE",
+                issue.getId(),
+                "Issue created for project " + project.getName()
+        );
+
     }
 
     @Override
@@ -134,6 +145,14 @@ public class IssueServiceImpl implements IssueService {
         }
 
         issueRepository.save(issue);
+
+        auditLogService.log(
+                "UPDATE_ISSUE_STATUS",
+                "ISSUE",
+                issue.getId(),
+                "Status updated to " + newStatus
+        );
+
     }
 
 }

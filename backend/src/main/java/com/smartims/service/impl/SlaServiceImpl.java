@@ -3,6 +3,7 @@ package com.smartims.service.impl;
 import com.smartims.entity.Issue;
 import com.smartims.enums.IssueStatus;
 import com.smartims.repository.SlaPolicyRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.NotificationService;
 import com.smartims.service.SlaService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class SlaServiceImpl implements SlaService {
 
     private final SlaPolicyRepository slaPolicyRepository;
     private final NotificationService notificationService;
-
+    private final AuditLogService auditLogService;
 
     @Override
     public void applySla(Issue issue) {
@@ -58,8 +59,19 @@ public class SlaServiceImpl implements SlaService {
                                 issue.getTitle(),
                                 issue.getPriorityLevel()
                         );
+
+                        auditLogService.log(
+                                "SLA_BREACHED",
+                                "ISSUE",
+                                issue.getId(),
+                                "SLA breached for priority "
+                                        + issue.getPriorityLevel()
+                                        + " in project "
+                                        + issue.getProject().getName()
+                        );
                     }
                 });
+    }
     }
 
 
