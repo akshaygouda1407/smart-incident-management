@@ -3,6 +3,7 @@ package com.smartims.service.impl;
 import com.smartims.entity.Issue;
 import com.smartims.enums.IssueStatus;
 import com.smartims.repository.SlaPolicyRepository;
+import com.smartims.service.NotificationService;
 import com.smartims.service.SlaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,8 @@ import java.time.LocalDateTime;
 public class SlaServiceImpl implements SlaService {
 
     private final SlaPolicyRepository slaPolicyRepository;
+    private final NotificationService notificationService;
+
 
     @Override
     public void applySla(Issue issue) {
@@ -43,8 +46,16 @@ public class SlaServiceImpl implements SlaService {
                     ).toMinutes();
 
                     if (elapsedMinutes > policy.getResolutionTimeMinutes()) {
+
                         issue.setSlaBreached(true);
+
+                        notificationService.sendSlaBreachAlert(
+                                issue.getId(),
+                                issue.getTitle(),
+                                issue.getPriorityLevel()
+                        );
                     }
                 });
     }
+
 }
