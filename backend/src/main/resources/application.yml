@@ -12,8 +12,16 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   mail:
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME}
+    password: ${GMAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
   jpa:
     hibernate:
@@ -26,6 +34,11 @@ spring:
 
 server:
   port: 8080
+
+app:
+  mail:
+    from: ${GMAIL_USERNAME}
+    admin: ${GMAIL_PASSWORD}
 
 jwt:
   secret: ${JWT_SECRET}
