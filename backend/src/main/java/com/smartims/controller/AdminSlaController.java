@@ -34,14 +34,9 @@ public class AdminSlaController {
             @RequestBody UpdateSlaPolicyRequest request) {
 
         return adminSlaService.updatePolicy(
-                projectId,
-                priorityLevel,
-                request
+                projectId, priorityLevel, request
         );
     }
-
-
-
 
     @GetMapping
     public List<SlaPolicy> getAllPolicies() {

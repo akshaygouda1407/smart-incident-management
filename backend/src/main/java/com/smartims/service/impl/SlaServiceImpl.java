@@ -40,8 +40,8 @@ public class SlaServiceImpl implements SlaService {
         }
 
         slaPolicyRepository
-                .findByProjectAndPriorityLevel(
-                        issue.getProject(),
+                .findByProjectIdAndPriorityLevel(
+                        issue.getProject().getId(),
                         issue.getPriorityLevel()
                 )
                 .ifPresent(policy -> {

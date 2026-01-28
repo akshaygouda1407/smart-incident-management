@@ -5,6 +5,7 @@ import com.smartims.entity.Issue;
 import com.smartims.entity.Project;
 import com.smartims.entity.User;
 import com.smartims.enums.IssueStatus;
+import com.smartims.enums.Severity;
 import com.smartims.exception.ResourceNotFoundException;
 import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.IssueRepository;
@@ -45,17 +46,30 @@ public class IssueServiceImpl implements IssueService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
+        //Access check
         if (!currentUser.getRole().name().equals("ADMIN")
                 && !project.getManager().equals(currentUser)
                 && !project.getMembers().contains(currentUser)) {
             throw new RuntimeException("You are not allowed to create issue for this project");
         }
 
+        //BUSINESS RULE
+        String severity;
+        String priorityLevel;
+
+        if (project.getManager().equals(currentUser)) {
+            severity = String.valueOf(request.getSeverity());
+            priorityLevel = request.getPriorityLevel();
+        } else {
+            severity = "NORMAL";        // default severity
+            priorityLevel = "P3";       // default priority
+        }
+
         Issue issue = Issue.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
-                .severity(request.getSeverity())
-                .priorityLevel(request.getPriorityLevel())
+                .severity(Severity.valueOf(severity))
+                .priorityLevel(priorityLevel)
                 .status(IssueStatus.OPEN)
                 .createdBy(createdBy)
                 .project(project)
@@ -77,8 +91,8 @@ public class IssueServiceImpl implements IssueService {
                 issue.getId(),
                 "Issue created for project " + project.getName()
         );
-
     }
+
 
     @Override
     public List<Issue> getIssuesByProject(Long projectId) {

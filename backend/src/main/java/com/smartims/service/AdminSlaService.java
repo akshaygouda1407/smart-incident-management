@@ -4,15 +4,14 @@ import com.smartims.dto.UpdateSlaPolicyRequest;
 import com.smartims.entity.SlaPolicy;
 
 public abstract class AdminSlaService {
-    public abstract SlaPolicy updatePolicy(
-            Long projectId,
-            String priorityLevel,
-            UpdateSlaPolicyRequest request);
+
 
     public abstract SlaPolicy updatePolicy(
             Long projectId,
             String priorityLevel,
-            UpdateSlaPolicyRequest request);
+            UpdateSlaPolicyRequest request
+    );
+
 
     private Integer toMinutes(long minutes) {
         if (minutes > Integer.MAX_VALUE) {
