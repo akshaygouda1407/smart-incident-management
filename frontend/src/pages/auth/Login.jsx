@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
 import { login } from "../../api/authApi";
-import { showError, showSuccess } from "../../utils/toast";
+import { showSuccess, showError } from "../../utils/toast";
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,29 +17,42 @@ export default function Login() {
 
     try {
       const res = await login(email, password);
+
       const data = res?.data?.data;
 
       if (!data?.token || !data?.role) {
-        showError("Login failed");
+        showError("Login failed. Please try again.");
         return;
       }
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
 
-      showSuccess("Welcome to ServicePlus 👋");
+      showSuccess("Welcome to ServicePulse");
 
       navigate(
         data.role === "ADMIN" ? "/admin" :
         data.role === "MANAGER" ? "/manager" :
-        data.role === "ENGINEER" ? "/engineer" : "/user"
+        data.role === "ENGINEER" ? "/engineer" :
+        "/user"
       );
-    } catch {
-      showError("Invalid email or password");
+
+    } catch (err) {
+      // THIS IS THE KEY PART
+      console.log("LOGIN ERROR RESPONSE:", err?.response);
+
+      const backendMessage =
+        err?.response?.data?.message;
+
+      showError(
+        backendMessage || "Invalid email or password"
+      );
+
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <AuthCard
@@ -52,7 +66,6 @@ export default function Login() {
           Forgot password?
         </Link>
       }
-
     >
       <form onSubmit={handleSubmit} className="space-y-4">
 

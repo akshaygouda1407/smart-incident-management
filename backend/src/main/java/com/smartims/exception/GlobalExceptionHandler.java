@@ -49,6 +49,14 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthException(AuthException ex) {
+        return ResponseUtil.error(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        );
+    }
+
     @ExceptionHandler(OtpException.class)
     public ResponseEntity<ApiResponse<?>> handleOtpException(OtpException ex) {
         return ResponseEntity

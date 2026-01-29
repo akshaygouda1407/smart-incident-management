@@ -8,11 +8,13 @@ import com.smartims.service.EmailService;
 import com.smartims.service.OtpService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class OtpServiceImpl implements OtpService {
 
@@ -37,7 +39,7 @@ public class OtpServiceImpl implements OtpService {
         entity.setPurpose(purpose);
         entity.setVerified(false);
         entity.setCreatedAt(LocalDateTime.now());
-        entity.setExpiryTime(LocalDateTime.now().plusMinutes(10));
+        entity.setExpiryTime(LocalDateTime.now().plusMinutes(3));
 
         otpRepo.save(entity);
         emailService.sendOtpEmail(email, otp, purpose);
@@ -65,6 +67,7 @@ public class OtpServiceImpl implements OtpService {
         record.setVerified(true);
         otpRepo.save(record);
     }
+
 
     @Override
     public boolean isOtpVerified(String email, OtpPurpose purpose) {

@@ -2,7 +2,10 @@ package com.smartims.controller;
 
 import com.smartims.dto.*;
 import com.smartims.enums.OtpPurpose;
+import com.smartims.exception.AuthException;
+import com.smartims.repository.UserRepository;
 import com.smartims.service.OtpService;
+import com.smartims.service.PendingRegisterStore;
 import com.smartims.service.UserService;
 import com.smartims.util.ResponseUtil;
 import jakarta.validation.Valid;
@@ -20,6 +23,10 @@ public class AuthController {
 
     private final UserService userService;
     private final OtpService otpService;
+    private final UserRepository userRepository;
+    private final PendingRegisterStore pendingRegisterStore;
+//    private final UserService userService;
+
 
 
     // ===================== LOGIN =====================
@@ -33,51 +40,93 @@ public class AuthController {
         );
     }
 
-    @PostMapping("/register/requestOtp")
-    public ApiResponse<?> requestRegisterOtp(
-            @RequestBody Map<String, String> body
-    ) {
-        otpService.generateAndSendOtp(body.get("email"), OtpPurpose.REGISTER);
+    @PostMapping("/register")
+    public ApiResponse<?> register(@RequestBody RegisterRequest request) {
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new AuthException("Email already registered");
+        }
+
+        PendingRegisterUser pending = new PendingRegisterUser(
+                request.getFullName(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getRole()
+        );
+
+        pendingRegisterStore.save(request.getEmail(), pending);
+
+        otpService.generateAndSendOtp(
+                request.getEmail(),
+                OtpPurpose.REGISTER
+        );
+
         return ApiResponse.success("OTP sent to email");
     }
 
 
-    @PostMapping("/register/verifyOtp")
+    @PostMapping("/register/request-otp")
+    public ApiResponse<?> requestRegisterOtp(@RequestParam String email) {
+        otpService.generateAndSendOtp(email, OtpPurpose.REGISTER);
+        return ApiResponse.success("OTP sent to email");
+    }
+
+    @PostMapping("/register/verify-otp")
     public ApiResponse<?> verifyRegisterOtp(
-            @RequestBody Map<String, String> body
+            @RequestParam String email,
+            @RequestParam String otp
     ) {
-        otpService.verifyOtp(
-                body.get("email"),
-                body.get("otp"),
-                OtpPurpose.REGISTER
-        );
-        return ApiResponse.success("OTP verified");
+        otpService.verifyOtp(email, otp, OtpPurpose.REGISTER);
+
+        PendingRegisterUser pending =
+                pendingRegisterStore.get(email);
+
+        if (pending == null) {
+            throw new RuntimeException("Registration session expired");
+        }
+
+        userService.createUserFromPending(pending);
+        pendingRegisterStore.remove(email);
+
+        return ApiResponse.success("Registration completed successfully");
     }
 
-    @PostMapping("/forgotPassword/requestOtp")
-    public ApiResponse<?> forgotPasswordOtp(@RequestBody Map<String, String> body) {
-        otpService.generateAndSendOtp(body.get("email"), OtpPurpose.FORGOT_PASSWORD);
-        return ApiResponse.success("OTP sent");
+
+    @PostMapping("/forgot-password/request-otp")
+    public ApiResponse<?> requestForgotPasswordOtp(@RequestParam String email) {
+
+        if (!userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email is not registered");
+        }
+
+        otpService.generateAndSendOtp(email, OtpPurpose.FORGOT_PASSWORD);
+        return ApiResponse.success("OTP sent to email");
     }
 
-    @PostMapping("/forgotPassword/verifyOtp")
-    public ApiResponse<?> verifyForgotOtp(
-            @RequestBody Map<String, String> body
+
+    @PostMapping("/forgot-password/verify-otp")
+    public ApiResponse<?> verifyForgotPasswordOtp(
+            @RequestParam String email,
+            @RequestParam String otp
     ) {
-        otpService.verifyOtp(
-                body.get("email"),
-                body.get("otp"),
-                OtpPurpose.FORGOT_PASSWORD
-        );
-
-        userService.resetPassword(
-                body.get("email"),
-                body.get("newPassword")
-        );
-
-        return ApiResponse.success("Password reset successful");
+        otpService.verifyOtp(email, otp, OtpPurpose.FORGOT_PASSWORD);
+        return ApiResponse.success("OTP verified successfully");
     }
 
+
+    @PostMapping("/forgot-password/reset")
+    public ApiResponse<?> resetPassword(
+            @RequestParam String email,
+            @RequestParam String newPassword
+    ) {
+        // Ensure OTP was verified
+        if (!otpService.isOtpVerified(email, OtpPurpose.FORGOT_PASSWORD)) {
+            throw new RuntimeException("OTP verification required");
+        }
+
+        userService.resetPassword(email, newPassword);
+        return ApiResponse.success("Password reset successfully");
+    }
 
 }
 

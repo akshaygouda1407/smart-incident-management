@@ -6,11 +6,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class User {
 
     @Id
@@ -27,9 +25,13 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Role role;
 
+    // 🔐 OTP / ACCOUNT STATUS
     @Column(nullable = false)
-    private boolean active = true;
+    private boolean enabled = false;
+
+    @Column(nullable = false)
+    private boolean verified = false;
 }
+

@@ -24,7 +24,9 @@ public class OtpVerification {
     private String otp;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OtpPurpose purpose;
+
 
     private boolean verified;
 
