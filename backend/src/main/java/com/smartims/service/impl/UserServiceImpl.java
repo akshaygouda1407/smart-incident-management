@@ -3,10 +3,12 @@ package com.smartims.service.impl;
 import com.smartims.dto.RegisterRequest;
 import com.smartims.dto.RegisterResponse;
 import com.smartims.entity.User;
+import com.smartims.enums.OtpPurpose;
 import com.smartims.enums.Role;
 import com.smartims.exception.BadRequestException;
 import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.OtpService;
 import com.smartims.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,6 +25,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final OtpService otpService;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -50,6 +53,10 @@ public class UserServiceImpl implements UserService {
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already registered");
+        }
+
+        if (!otpService.isOtpVerified(request.getEmail(), OtpPurpose.REGISTER)) {
+            throw new RuntimeException("OTP verification required before registration");
         }
 
         User user = User.builder()

@@ -22,6 +22,13 @@ public class OtpServiceImpl implements OtpService {
     @Override
     public void generateAndSendOtp(String email, OtpPurpose purpose) {
 
+        otpRepo.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
+                .ifPresent(lastOtp -> {
+                    if (lastOtp.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(30))) {
+                        throw new RuntimeException("Please wait before requesting another OTP");
+                    }
+                });
+
         String otp = String.valueOf(100000 + new Random().nextInt(900000));
 
         OtpVerification entity = new OtpVerification();
@@ -30,7 +37,7 @@ public class OtpServiceImpl implements OtpService {
         entity.setPurpose(purpose);
         entity.setVerified(false);
         entity.setCreatedAt(LocalDateTime.now());
-        entity.setExpiryTime(LocalDateTime.now().plusMinutes(3));
+        entity.setExpiryTime(LocalDateTime.now().plusMinutes(10));
 
         otpRepo.save(entity);
         emailService.sendOtpEmail(email, otp, purpose);
@@ -58,4 +65,12 @@ public class OtpServiceImpl implements OtpService {
         record.setVerified(true);
         otpRepo.save(record);
     }
+
+    @Override
+    public boolean isOtpVerified(String email, OtpPurpose purpose) {
+        return otpRepo
+                .findTopByEmailAndPurposeAndVerifiedTrueOrderByCreatedAtDesc(email, purpose)
+                .isPresent();
+    }
+
 }
