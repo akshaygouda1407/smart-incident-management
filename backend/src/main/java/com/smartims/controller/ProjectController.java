@@ -27,14 +27,17 @@ public class ProjectController {
 
         ProjectResponse response = projectService.createProject(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(
                         HttpStatus.CREATED.value(),
                         "SUCCESS",
                         "Project created successfully",
-                        response
+                        response,
+                        true
                 ));
     }
+
 
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','ENGINEER','USER')")
     @GetMapping

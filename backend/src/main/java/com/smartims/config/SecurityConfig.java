@@ -22,47 +22,33 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final JwtAuthenticationEntryPoint authenticationEntryPoint;
-    private final JwtAccessDeniedHandler accessDeniedHandler;
-
-
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-//
-//        http
-//                .csrf(csrf -> csrf.disable())
-//                .authorizeHttpRequests(auth -> auth
-//                        // 🔓 PUBLIC AUTH & OTP APIs
-//                        .requestMatchers(
-//                                "/api/auth/**",
-//                                "/api/auth/register/**",
-//                                "/api/auth/otp/**"
-//                        ).permitAll()
-//
-//                        // 🔐 everything else secured
-//                        .anyRequest().authenticated()
-//                );
-//
-//        return http.build();
-//    }
-
-
-    private final SecurityAuthEntryPoint authEntryPoint;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(authEntryPoint)
-                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+
+                        // ✅ PUBLIC AUTH & OTP ENDPOINTS
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register/**",
+                                "/api/auth/forgot-password/**",
+                                "/api/contact/submit"
+                        ).permitAll()
+
+                        // everything else needs auth
                         .anyRequest().authenticated()
-                );
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+
     }
 
 

@@ -1,6 +1,7 @@
 package com.smartims.exception;
 
 import com.smartims.dto.ApiResponse;
+import com.smartims.service.OtpException;
 import com.smartims.util.ResponseUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 🔴 AUTHENTICATION ERROR (LOGIN / JWT / OTP)
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAuth(AuthenticationException ex) {
+    public ResponseEntity<ApiResponse<?>> handleAuth(AuthenticationException ex) {
         ex.printStackTrace();
         return ResponseUtil.error(
                 HttpStatus.UNAUTHORIZED,
@@ -22,9 +22,8 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 🔴 AUTHORIZATION ERROR (ROLE / PERMISSION)
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleAccess(AccessDeniedException ex) {
+    public ResponseEntity<ApiResponse<?>> handleAccess(AccessDeniedException ex) {
         ex.printStackTrace();
         return ResponseUtil.error(
                 HttpStatus.FORBIDDEN,
@@ -32,9 +31,8 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 🟡 BUSINESS ERRORS
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Object>> handleRuntime(RuntimeException ex) {
+    public ResponseEntity<ApiResponse<?>> handleRuntime(RuntimeException ex) {
         ex.printStackTrace();
         return ResponseUtil.error(
                 HttpStatus.BAD_REQUEST,
@@ -42,13 +40,25 @@ public class GlobalExceptionHandler {
         );
     }
 
-    // 🔴 REAL FALLBACK (DO NOT HIDE)
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Object>> handle(Exception ex) {
+    public ResponseEntity<ApiResponse<?>> handle(Exception ex) {
         ex.printStackTrace();
         return ResponseUtil.error(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ex.getClass().getName() + " → " + ex.getMessage()
         );
+    }
+
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ApiResponse<?>> handleOtpException(OtpException ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ApiResponse<>(
+                        400,
+                        "FAILED",
+                        ex.getMessage(),
+                        null,
+                        false
+                ));
     }
 }

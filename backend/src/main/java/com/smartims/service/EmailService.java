@@ -1,7 +1,8 @@
 package com.smartims.service;
 
-public interface EmailService {
-    void sendEmail(String to, String subject, String body);
+import com.smartims.enums.OtpPurpose;
 
-    void sendOtpEmail(String to, String otp);
+public interface EmailService {
+    void sendOtpEmail(String email, String otp, OtpPurpose purpose);
+    void sendContactAcknowledgement(String email, String name);
 }

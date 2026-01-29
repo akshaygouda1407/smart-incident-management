@@ -9,24 +9,23 @@ public class ResponseUtil {
     public static <T> ResponseEntity<ApiResponse<T>> success(
             String message, T data) {
 
-        ApiResponse<T> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "SUCCESS",
-                message,
-                data
+        return ResponseEntity.ok(
+                ApiResponse.success(message, data)
         );
-        return ResponseEntity.ok(response);
     }
 
-    public static <T> ResponseEntity<ApiResponse<T>> error(
+    public static ResponseEntity<ApiResponse<?>> error(
             HttpStatus status, String message) {
 
-        ApiResponse<T> response = new ApiResponse<>(
-                status.value(),
-                "FAILED",
-                message,
-                null
+        return new ResponseEntity<>(
+                new ApiResponse<>(
+                        status.value(),
+                        "FAILED",
+                        message,
+                        null,
+                        false
+                ),
+                status
         );
-        return new ResponseEntity<>(response, status);
     }
 }

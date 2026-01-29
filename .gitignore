@@ -17,6 +17,7 @@ target/
 **/application.yml
 **/application.properties
 .env
+application.properties
 
 
 ### Eclipse ###
