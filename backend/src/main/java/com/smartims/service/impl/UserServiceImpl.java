@@ -78,8 +78,6 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-
-
     @Override
     public void enableUser(String email) {
         User user = userRepository.findByEmail(email)
