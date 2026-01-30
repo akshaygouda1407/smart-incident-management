@@ -1,5 +1,8 @@
 package com.smartims.dto;
 
+import lombok.Getter;
+
+@Getter
 public class KeyValueCountResponse {
 
     private String key;
@@ -10,11 +13,4 @@ public class KeyValueCountResponse {
         this.count = count;
     }
 
-    public String getKey() {
-        return key;
-    }
-
-    public long getCount() {
-        return count;
-    }
 }

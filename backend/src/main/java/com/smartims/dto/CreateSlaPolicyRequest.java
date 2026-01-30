@@ -10,5 +10,5 @@ public class CreateSlaPolicyRequest {
     private Long projectId;
     private String priorityLevel;
     private Integer resolutionTimeMinutes;
-    private String description; // 🔥 ADD THIS
+    private String description;
 }

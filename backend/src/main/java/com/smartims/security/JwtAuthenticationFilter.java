@@ -2,56 +2,53 @@ package com.smartims.security;
 
 import com.smartims.entity.User;
 import com.smartims.repository.UserRepository;
+import com.smartims.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import io.jsonwebtoken.io.IOException;
 
-import java.io.IOException;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
 
+    public JwtAuthenticationFilter(
+            JwtUtil jwtUtil,
+            UserRepository userRepository
+    ) {
+        this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
+    }
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
-    ) throws ServletException, IOException {
+    ) throws ServletException, IOException, java.io.IOException {
 
-        System.out.println("JWT FILTER HIT: " + request.getRequestURI());
+        String header = request.getHeader("Authorization");
 
-        String path = request.getRequestURI();
-
-        if (path.startsWith("/api/auth")) {
+        if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
+        String token = header.substring(7);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = authHeader.substring(7);
-
-        if (!jwtService.isTokenValid(token)) {
+        if (!jwtUtil.isTokenValid(token)) {
             response.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED,
                     "Invalid or expired token"
@@ -59,16 +56,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        Claims claims = jwtService.extractClaims(token);
+        Claims claims = jwtUtil.extractAllClaims(token);
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
+        Integer tokenVersionFromJwt =
+                claims.get("tokenVersion", Integer.class);
 
         User user = userRepository.findByEmail(email).orElse(null);
 
         if (user == null
                 || Boolean.TRUE.equals(user.getLocked())
-                || Boolean.FALSE.equals(user.getEnabled()))
-        {
+                || Boolean.FALSE.equals(user.getEnabled())) {
 
             response.sendError(
                     HttpServletResponse.SC_UNAUTHORIZED,
@@ -77,21 +75,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        UsernamePasswordAuthenticationToken authentication =
+        if (!user.getTokenVersion().equals(tokenVersionFromJwt)) {
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Token has been invalidated. Please login again."
+            );
+            return;
+        }
+
+        List<GrantedAuthority> authorities =
+                List.of(new SimpleGrantedAuthority("ROLE_" + role));
+
+        Authentication authentication =
                 new UsernamePasswordAuthenticationToken(
                         email,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                        authorities
                 );
 
-        authentication.setDetails(
-                new WebAuthenticationDetailsSource().buildDetails(request)
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
 
         filterChain.doFilter(request, response);
     }
 
-
 }
+

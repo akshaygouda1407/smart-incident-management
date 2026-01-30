@@ -1,5 +1,6 @@
 package com.smartims.security;
 
+import com.smartims.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -11,15 +12,17 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class JwtService {
 
     @Value("${jwt.secret}")
-    private String secret;
+    private String jwtSecret;
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    @Value("${jwt.expiration.ms}")
+    private long jwtExpirationMs;
 
     private Key signingKey;
 
@@ -29,20 +32,39 @@ public class JwtService {
     @PostConstruct
     public void init() {
         this.signingKey = Keys.hmacShaKeyFor(
-                secret.getBytes(StandardCharsets.UTF_8)
+                jwtSecret.getBytes(StandardCharsets.UTF_8)
         );
     }
 
-    public String generateToken(String email, String role) {
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String generateToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("role", user.getRole().name());
+        claims.put("tokenVersion", user.getTokenVersion());
+
+        return generateToken(claims, user.getEmail());
+    }
+
+    private String generateToken(Map<String, Object> claims, String subject) {
+
+        Map<String, Object> header = new HashMap<>();
+        header.put("typ", "JWT");
+        header.put("alg", "HS256");
 
         return Jwts.builder()
-                .setSubject(email)
-                .claim("role", role)
+                .setHeader(header)
+                .setClaims(claims)
+                .setSubject(subject)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
+
 
     public Claims extractClaims(String token) {
         return Jwts.parserBuilder()

@@ -15,7 +15,6 @@ public class WorkloadController {
 
     private final WorkloadService workloadService;
 
-    //Engineer workload
     @GetMapping("/engineer/{engineerId}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','ENGINEER')")
     public ResponseEntity<ApiResponse<Long>> getEngineerWorkload(
@@ -27,7 +26,6 @@ public class WorkloadController {
         );
     }
 
-    //Manager workload
     @GetMapping("/manager/{managerId}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<Long>> getManagerWorkload(

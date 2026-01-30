@@ -43,10 +43,4 @@ public class AdminSlaController {
         return slaPolicyRepository.findAll();
     }
 
-    @GetMapping("/test-email")
-    public String testEmail() {
-        notificationService.sendSlaBreachAlert(999L, "Mailtrap Test", "P1");
-        return "Email sent";
-    }
-
 }

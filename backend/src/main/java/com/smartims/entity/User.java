@@ -6,9 +6,11 @@ import lombok.*;
 
 @Entity
 @Table(name = "users")
-@Data
+//@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class User {
 
     @Id
@@ -27,11 +29,29 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    // 🔐 OTP / ACCOUNT STATUS
     @Column(nullable = false)
     private boolean enabled = false;
 
     @Column(nullable = false)
     private boolean verified = false;
+
+    @Column(nullable = false)
+    private boolean locked = false;//if user is deleted then only it should be true(softDelete)
+
+    @Column(nullable = false)
+    private Integer tokenVersion = 0;
+
+    public void incrementTokenVersion() {
+        this.tokenVersion++;
+    }
+
+
+    public Boolean getLocked() {
+        return locked;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
 }
 

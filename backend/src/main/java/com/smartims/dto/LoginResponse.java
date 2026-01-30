@@ -1,5 +1,6 @@
 package com.smartims.dto;
 
+import com.smartims.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -8,5 +9,6 @@ import lombok.Getter;
 public class LoginResponse {
 
     private String token;
-    private String role;
+    private Role role;
+
 }

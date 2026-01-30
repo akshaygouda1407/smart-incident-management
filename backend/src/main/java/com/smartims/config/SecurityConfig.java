@@ -1,9 +1,6 @@
 package com.smartims.config;
 
-import com.smartims.security.JwtAccessDeniedHandler;
-import com.smartims.security.JwtAuthFilter;
-import com.smartims.security.JwtAuthenticationEntryPoint;
-import com.smartims.security.SecurityAuthEntryPoint;
+import com.smartims.security.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +20,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,7 +29,6 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
 
-                        // ✅ PUBLIC AUTH & OTP ENDPOINTS
                         .requestMatchers(
                                 "/api/auth/login",
                                 "/api/auth/register/**",
@@ -39,9 +36,9 @@ public class SecurityConfig {
                                 "/api/contact/submit"
                         ).permitAll()
 
-                        // everything else needs auth
                         .anyRequest().authenticated()
-                )
+                ).addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 )
@@ -50,7 +47,6 @@ public class SecurityConfig {
         return http.build();
 
     }
-
 
     @Bean
     public PasswordEncoder passwordEncoder() {

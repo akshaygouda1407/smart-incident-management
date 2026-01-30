@@ -1,6 +1,7 @@
 package com.smartims.controller;
 
 import com.smartims.dto.*;
+import com.smartims.entity.User;
 import com.smartims.enums.OtpPurpose;
 import com.smartims.exception.AuthException;
 import com.smartims.repository.UserRepository;
@@ -10,11 +11,9 @@ import com.smartims.service.UserService;
 import com.smartims.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -25,11 +24,8 @@ public class AuthController {
     private final OtpService otpService;
     private final UserRepository userRepository;
     private final PendingRegisterStore pendingRegisterStore;
-//    private final UserService userService;
 
 
-
-    // ===================== LOGIN =====================
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request) {
@@ -39,6 +35,22 @@ public class AuthController {
                 userService.login(request)
         );
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Object>> logout(Authentication authentication) {
+
+        String email = authentication.getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.incrementTokenVersion();
+        userRepository.save(user);
+
+        return ResponseUtil.success("Logged out successfully", null);
+    }
+
+
 
     @PostMapping("/register")
     public ApiResponse<?> register(@RequestBody RegisterRequest request) {
@@ -73,23 +85,27 @@ public class AuthController {
 
     @PostMapping("/register/verify-otp")
     public ApiResponse<?> verifyRegisterOtp(
-            @RequestParam String email,
-            @RequestParam String otp
+            @RequestBody VerifyOtpRequest request
     ) {
-        otpService.verifyOtp(email, otp, OtpPurpose.REGISTER);
+        otpService.verifyOtp(
+                request.getEmail(),
+                request.getOtp(),
+                OtpPurpose.REGISTER
+        );
 
         PendingRegisterUser pending =
-                pendingRegisterStore.get(email);
+                pendingRegisterStore.get(request.getEmail());
 
         if (pending == null) {
             throw new RuntimeException("Registration session expired");
         }
 
         userService.createUserFromPending(pending);
-        pendingRegisterStore.remove(email);
+        pendingRegisterStore.remove(request.getEmail());
 
         return ApiResponse.success("Registration completed successfully");
     }
+
 
 
     @PostMapping("/forgot-password/request-otp")
@@ -119,7 +135,6 @@ public class AuthController {
             @RequestParam String email,
             @RequestParam String newPassword
     ) {
-        // Ensure OTP was verified
         if (!otpService.isOtpVerified(email, OtpPurpose.FORGOT_PASSWORD)) {
             throw new RuntimeException("OTP verification required");
         }
