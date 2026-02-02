@@ -3,6 +3,7 @@ package com.smartims.controller;
 import com.smartims.dto.ApiResponse;
 import com.smartims.dto.CreateProjectRequest;
 import com.smartims.dto.ProjectResponse;
+import com.smartims.dto.UpdateProjectRequest;
 import com.smartims.service.ProjectService;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
@@ -38,14 +39,65 @@ public class ProjectController {
                 ));
     }
 
-
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','ENGINEER','USER')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ProjectResponse>>> getProjects() {
+    public ResponseEntity<ApiResponse<List<ProjectResponse>>> getAllProjects() {
 
-        return ResponseUtil.success(
-                "Projects fetched successfully",
-                projectService.getProjectsForCurrentUser()
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        "Projects fetched successfully",
+                        projectService.getAllProjects(),
+                        true
+                )
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ProjectResponse>> getProjectById(
+            @PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        "Project fetched successfully",
+                        projectService.getProjectById(id),
+                        true
+                )
+        );
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(
+            @PathVariable Long id,
+            @RequestBody UpdateProjectRequest request) {
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        "Project updated successfully",
+                        projectService.updateProject(id, request),
+                        true
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteProject(
+            @PathVariable Long id) {
+
+        projectService.deleteProject(id);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        "Project deleted successfully",
+                        null,
+                        true
+                )
         );
     }
 }

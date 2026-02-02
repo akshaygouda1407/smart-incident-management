@@ -5,6 +5,7 @@ import com.smartims.entity.Issue;
 import com.smartims.service.EngineerService;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ public class EngineerController {
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<Object>> getDashboard(Authentication authentication) {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer dashboard fetched successfully",
                 engineerService.getDashboard(authentication.getName())
         );
@@ -31,6 +33,7 @@ public class EngineerController {
     @GetMapping("/issues")
     public ResponseEntity<ApiResponse<List<Issue>>> getMyIssues(Authentication authentication) {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer issues fetched successfully",
                 engineerService.getMyIssues(authentication.getName())
         );
@@ -44,6 +47,7 @@ public class EngineerController {
         engineerService.updateIssueStatus(id, authentication.getName());
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Issue status updated successfully",
                 null
         );

@@ -4,6 +4,7 @@ import com.smartims.dto.ApiResponse;
 import com.smartims.service.WorkloadService;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class WorkloadController {
             @PathVariable Long engineerId) {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer workload fetched successfully",
                 workloadService.getEngineerWorkload(engineerId)
         );
@@ -32,6 +34,7 @@ public class WorkloadController {
             @PathVariable Long managerId) {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Manager workload fetched successfully",
                 workloadService.getManagerWorkload(managerId)
         );

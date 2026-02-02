@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class CreateProjectRequest {
+public class UpdateProjectRequest {
 
     private String name;
     private String description;

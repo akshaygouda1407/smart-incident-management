@@ -1,11 +1,12 @@
 package com.smartims.service.impl;
 
+import com.smartims.dto.SlaStatusResponse;
 import com.smartims.entity.Issue;
 import com.smartims.enums.IssueStatus;
+import com.smartims.repository.IssueRepository;
 import com.smartims.repository.SlaPolicyRepository;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.NotificationInboxService;
-import com.smartims.service.NotificationService;
 import com.smartims.service.SlaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 public class SlaServiceImpl implements SlaService {
 
     private final SlaPolicyRepository slaPolicyRepository;
+    private final IssueRepository issueRepository;
     private final AuditLogService auditLogService;
     private final NotificationInboxService notificationInboxService;
 
@@ -74,4 +76,41 @@ public class SlaServiceImpl implements SlaService {
                     }
                 });
     }
+
+    @Override
+    public SlaStatusResponse getSlaStatus(Long issueId) {
+
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = issue.getSlaStartTime();
+        LocalDateTime due = issue.getSlaDueTime();
+
+        if (start == null || due == null) {
+            throw new RuntimeException("SLA not initialized for this issue");
+        }
+
+        long totalMinutes = Duration.between(start, due).toMinutes();
+        long remainingMinutes = Duration.between(now, due).toMinutes();
+
+        String status;
+
+        if (now.isAfter(due)) {
+            status = "BREACHED";
+            remainingMinutes = 0;
+        } else if (remainingMinutes <= totalMinutes * 0.2) {
+            status = "AT_RISK";
+        } else {
+            status = "ON_TRACK";
+        }
+
+        return SlaStatusResponse.builder()
+                .slaStartTime(start)
+                .slaDueTime(due)
+                .remainingMinutes(remainingMinutes)
+                .status(status)
+                .build();
+    }
+
 }

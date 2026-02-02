@@ -4,11 +4,14 @@ import com.smartims.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
-//@Data
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Getter
 @Setter
 public class User {
@@ -38,13 +41,12 @@ public class User {
     @Column(nullable = false)
     private boolean locked = false;//if user is deleted then only it should be true(softDelete)
 
-    @Column(nullable = false)
+    @Column(name = "token_version", nullable = false)
     private Integer tokenVersion = 0;
 
     public void incrementTokenVersion() {
         this.tokenVersion++;
     }
-
 
     public Boolean getLocked() {
         return locked;
@@ -53,5 +55,16 @@ public class User {
     public Boolean getEnabled() {
         return enabled;
     }
+
+    @PrePersist
+    void onCreate() {
+        if (tokenVersion == null) {
+            tokenVersion = 0;
+        }
+        enabled = true;
+        locked = false;
+        verified = true;
+    }
+
 }
 

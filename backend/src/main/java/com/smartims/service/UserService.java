@@ -2,6 +2,8 @@ package com.smartims.service;
 
 import com.smartims.dto.*;
 
+import java.util.List;
+
 public interface UserService {
 
 //    RegisterResponse registerUser(RegisterRequest request);
@@ -16,6 +18,22 @@ public interface UserService {
     void ensureUserExists(String email);
 
     void createUserFromPending(PendingRegisterUser pending);
+
+    UserResponse createUser(UserCreateRequest request);
+
+    List<UserResponse> getAllUsers();
+
+    UserResponse getUserById(Long id);
+
+    UserResponse updateUser(Long id, UserUpdateRequest request);
+
+    void deleteUser(Long id);
+
+    void updateUserStatus(Long userId, boolean enabled);
+
+    void updateUserLockStatus(Long userId, boolean locked);
+
+    void changePassword(ChangePasswordRequest request);
 
 
 }

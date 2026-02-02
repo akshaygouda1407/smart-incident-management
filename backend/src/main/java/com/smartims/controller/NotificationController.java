@@ -7,6 +7,7 @@ import com.smartims.repository.UserNotificationRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +30,7 @@ public class NotificationController {
                 .orElseThrow();
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Notifications fetched successfully",
                 userNotificationRepository
                         .findByUserOrderByReceivedAtDesc(user)
@@ -42,6 +44,7 @@ public class NotificationController {
                 .orElseThrow();
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Unread notification count fetched successfully",
                 userNotificationRepository
                         .countByUserAndReadFalse(user)
@@ -59,6 +62,7 @@ public class NotificationController {
         userNotificationRepository.save(notification);
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Notification marked as read",
                 null
         );

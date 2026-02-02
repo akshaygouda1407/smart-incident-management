@@ -3,6 +3,8 @@ package com.smartims.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -36,5 +38,8 @@ public class Project {
             joinColumns = @JoinColumn(name = "project_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-    private List<User> members;
+
+    private List<User> members = new ArrayList<>();
+
+    private LocalDateTime createdAt;
 }

@@ -1,13 +1,12 @@
 package com.smartims.controller;
 
-import com.smartims.dto.ApiResponse;
-import com.smartims.dto.CreateIssueRequest;
-import com.smartims.dto.UpdateIssueStatusRequest;
+import com.smartims.dto.*;
 import com.smartims.entity.Issue;
 import com.smartims.service.IssueService;
 import com.smartims.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -33,6 +32,7 @@ public class IssueController {
         issueService.createIssue(request, email);
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Issue created successfully",
                 null
         );
@@ -52,6 +52,7 @@ public class IssueController {
         issueService.updateIssueStatus(id, request.getStatus(), role);
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Issue status updated successfully",
                 null
         );
@@ -63,6 +64,7 @@ public class IssueController {
             @PathVariable Long projectId) {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Project issues fetched successfully",
                 issueService.getIssuesByProject(projectId)
         );
@@ -77,6 +79,7 @@ public class IssueController {
         issueService.assignEngineer(issueId, engineerId);
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer assigned successfully",
                 null
         );
@@ -90,8 +93,37 @@ public class IssueController {
         issueService.autoAssignEngineer(issueId);
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer auto-assigned successfully",
                 null
         );
     }
+
+    @GetMapping("/{id}/sla-status")
+    public ResponseEntity<ApiResponse<SlaStatusResponse>> getSlaStatus(
+            @PathVariable Long id) {
+
+        SlaStatusResponse response = issueService.getSlaStatus(id);
+
+        return ResponseUtil.success(
+                HttpStatus.OK,
+                "SLA status fetched successfully",
+                response
+        );
+    }
+
+    @GetMapping("/sla/compliance")
+    public ResponseEntity<ApiResponse<SlaComplianceResponse>> getSlaCompliance() {
+
+        SlaComplianceResponse response =
+                issueService.getSlaComplianceSummary();
+
+        return ResponseUtil.success(
+                HttpStatus.OK,
+                "SLA compliance summary fetched successfully",
+                response
+        );
+    }
+
+
 }

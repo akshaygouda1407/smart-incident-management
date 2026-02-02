@@ -3,6 +3,7 @@ package com.smartims.dto;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -14,4 +15,6 @@ public class ProjectResponse {
     private String description;
     private String managerName;
     private List<String> memberNames;
+
+    private LocalDateTime createdAt;
 }

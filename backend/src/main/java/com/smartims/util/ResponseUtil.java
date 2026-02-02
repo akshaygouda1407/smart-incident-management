@@ -6,26 +6,38 @@ import org.springframework.http.ResponseEntity;
 
 public class ResponseUtil {
 
-    public static <T> ResponseEntity<ApiResponse<T>> success(
-            String message, T data) {
+    private ResponseUtil() {
 
-        return ResponseEntity.ok(
-                ApiResponse.success(message, data)
+    }
+
+    public static <T> ResponseEntity<ApiResponse<T>> success(
+            HttpStatus status,
+            String message,
+            T data
+    ) {
+        return ResponseEntity.status(status).body(
+                new ApiResponse<>(
+                        status.value(),
+                        "SUCCESS",
+                        message,
+                        data,
+                        true
+                )
         );
     }
 
     public static ResponseEntity<ApiResponse<?>> error(
-            HttpStatus status, String message) {
-
-        return new ResponseEntity<>(
+            HttpStatus status,
+            String message
+    ) {
+        return ResponseEntity.status(status).body(
                 new ApiResponse<>(
                         status.value(),
                         "FAILED",
                         message,
                         null,
                         false
-                ),
-                status
+                )
         );
     }
 }

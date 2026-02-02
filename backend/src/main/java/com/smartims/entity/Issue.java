@@ -49,7 +49,14 @@ public class Issue {
     private LocalDateTime createdAt;
 
     private LocalDateTime resolvedAt;
-
+    private LocalDateTime slaStartTime;
+    private LocalDateTime slaDueTime;
     private boolean slaBreached;
+
+    @PrePersist
+    void onCreate() {
+        this.slaBreached = false;
+    }
+
 
 }

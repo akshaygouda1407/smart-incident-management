@@ -11,6 +11,7 @@ import com.smartims.service.UserService;
 import com.smartims.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,7 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request) {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Login successful",
                 userService.login(request)
         );
@@ -47,7 +49,8 @@ public class AuthController {
         user.incrementTokenVersion();
         userRepository.save(user);
 
-        return ResponseUtil.success("Logged out successfully", null);
+        return ResponseUtil.success(
+                HttpStatus.OK,"Logged out successfully", null);
     }
 
 

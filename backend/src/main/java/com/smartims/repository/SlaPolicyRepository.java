@@ -13,5 +13,7 @@ public interface SlaPolicyRepository extends JpaRepository<SlaPolicy, Long> {
             String priorityLevel
     );
 
+    Optional<SlaPolicy> findByPriorityLevel(String priorityLevel);
+
 }
 

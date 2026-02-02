@@ -8,6 +8,7 @@ import com.smartims.entity.Issue;
 import com.smartims.service.AdminService;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -24,27 +25,40 @@ public class AdminController {
 
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<String>> adminDashboard() {
+
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Admin dashboard access granted",
                 "Admin dashboard access granted"
         );
     }
 
+
     @GetMapping("/overview")
     public ResponseEntity<ApiResponse<AdminOverviewResponse>> getOverview() {
+
+        AdminOverviewResponse response = adminService.getOverview();
+
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Admin overview fetched successfully",
-                adminService.getOverview()
+                response
         );
     }
 
+
     @GetMapping("/issues")
     public ResponseEntity<ApiResponse<List<Issue>>> getAllIssues() {
+
+        List<Issue> issues = adminService.getAllIssues();
+
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Issues fetched successfully",
-                adminService.getAllIssues()
+                issues
         );
     }
+
 
     @PutMapping("/issues/{id}/priority")
     public ResponseEntity<ApiResponse<Void>> updatePriority(
@@ -54,10 +68,12 @@ public class AdminController {
         adminService.updatePriority(id, request.getPriority());
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Priority updated successfully",
                 null
         );
     }
+
 
     @PutMapping("/issues/{id}/assign")
     public ResponseEntity<ApiResponse<Void>> assignEngineer(
@@ -67,6 +83,7 @@ public class AdminController {
         adminService.assignEngineer(id, request.getEngineerId());
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Engineer assigned successfully",
                 null
         );

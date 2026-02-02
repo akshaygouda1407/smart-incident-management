@@ -2,6 +2,7 @@ package com.smartims.controller;
 
 import com.smartims.dto.ApiResponse;
 import com.smartims.util.ResponseUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ public class ProtectedController {
     public ResponseEntity<ApiResponse<String>> secureEndpoint() {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Authentication successful",
                 "You are authenticated"
         );

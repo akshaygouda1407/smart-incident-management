@@ -5,6 +5,7 @@ import com.smartims.entity.AuditLog;
 import com.smartims.repository.AuditLogRepository;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ public class AuditLogController {
     @GetMapping
     public ResponseEntity<ApiResponse<List<AuditLog>>> getAllLogs() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Audit logs fetched successfully",
                 auditLogRepository.findAll()
         );
@@ -32,6 +34,7 @@ public class AuditLogController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<AuditLog>>> getMyLogs(Authentication auth) {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "My audit logs fetched successfully",
                 auditLogRepository.findByActorEmail(auth.getName())
         );

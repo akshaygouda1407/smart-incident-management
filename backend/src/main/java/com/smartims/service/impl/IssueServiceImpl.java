@@ -1,23 +1,23 @@
 package com.smartims.service.impl;
 
 import com.smartims.dto.CreateIssueRequest;
-import com.smartims.entity.Issue;
-import com.smartims.entity.Project;
-import com.smartims.entity.User;
+import com.smartims.dto.SlaComplianceResponse;
+import com.smartims.dto.SlaStatusResponse;
+import com.smartims.entity.*;
 import com.smartims.enums.IssueStatus;
 import com.smartims.enums.Severity;
 import com.smartims.exception.ResourceNotFoundException;
 import com.smartims.exception.UnauthorizedException;
-import com.smartims.repository.IssueRepository;
-import com.smartims.repository.ProjectRepository;
-import com.smartims.repository.UserRepository;
+import com.smartims.repository.*;
 import com.smartims.service.AuditLogService;
+import com.smartims.service.IssueActivityService;
 import com.smartims.service.IssueService;
 import com.smartims.service.NotificationInboxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -27,10 +27,14 @@ import java.util.List;
 public class IssueServiceImpl implements IssueService {
 
     private final IssueRepository issueRepository;
+    private final SlaBreachRepository slaBreachRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final NotificationInboxService notificationInboxService;
     private final AuditLogService auditLogService;
+//    private final SlaPolicy slaPolicy;
+    private final SlaPolicyRepository slaPolicyRepository;
+    private final IssueActivityService issueActivityService;
 
     @Override
     public long countByStatus(IssueStatus status) {
@@ -77,12 +81,30 @@ public class IssueServiceImpl implements IssueService {
                 .slaBreached(false)
                 .build();
 
+        SlaPolicy slaPolicy = slaPolicyRepository
+                .findByPriorityLevel(issue.getPriorityLevel())
+                .orElseThrow(() -> new RuntimeException("SLA policy not found"));
+
+        issue.setSlaStartTime(LocalDateTime.now());
+        issue.setSlaDueTime(
+                LocalDateTime.now().plusMinutes(
+                        slaPolicy.getResolutionTimeMinutes()
+                )
+        );
+
+
         issueRepository.save(issue);
 
         notificationInboxService.notifyForIssueEvent(
                 "ISSUE_CREATED",
                 "New issue created: " + issue.getTitle(),
                 issue
+        );
+
+        issueActivityService.logActivity(
+                issue,
+                "CREATED",
+                "Issue created"
         );
 
         auditLogService.log(
@@ -166,6 +188,12 @@ public class IssueServiceImpl implements IssueService {
             default -> throw new UnauthorizedException("Role not allowed to update issue status");
         }
 
+        issueActivityService.logActivity(
+                issue,
+                "STATUS_CHANGE",
+                "Status changed to " + currentStatus
+        );
+
         issueRepository.save(issue);
 
         notificationInboxService.notifyForIssueEvent(
@@ -173,6 +201,8 @@ public class IssueServiceImpl implements IssueService {
                 "Issue '" + issue.getTitle() + "' status changed to " + newStatus,
                 issue
         );
+
+
 
 
         auditLogService.log(
@@ -212,6 +242,12 @@ public class IssueServiceImpl implements IssueService {
                 issue
         );
 
+        issueActivityService.logActivity(
+                issue,
+                "ASSIGNED",
+                "Assigned to " + engineer.getFullName()
+        );
+
         auditLogService.log(
                 "ASSIGN_ENGINEER",
                 "ISSUE",
@@ -219,6 +255,31 @@ public class IssueServiceImpl implements IssueService {
                 "Assigned to engineer " + engineer.getEmail()
         );
     }
+
+    private void recordSlaBreachIfNeeded(
+            Issue issue,
+            LocalDateTime dueTime,
+            LocalDateTime breachedAt) {
+
+        if (slaBreachRepository.existsByIssue(issue)) {
+            return; // already recorded
+        }
+
+        long delayMinutes =
+                Duration.between(dueTime, breachedAt).toMinutes();
+
+        SlaBreach breach = new SlaBreach();
+        breach.setIssue(issue);
+        breach.setBreachedAt(breachedAt);
+        breach.setSlaDueTime(dueTime);
+        breach.setDelayMinutes(delayMinutes);
+
+        slaBreachRepository.save(breach);
+
+        issue.setSlaBreached(true);
+        issueRepository.save(issue);
+    }
+
 
 
     @Override
@@ -259,6 +320,12 @@ public class IssueServiceImpl implements IssueService {
                 issue
         );
 
+        issueActivityService.logActivity(
+                issue,
+                "AUTO_ASSIGNED",
+                "Auto-assigned to " + selectedEngineer.getFullName()
+        );
+
         auditLogService.log(
                 "AUTO_ASSIGN_ENGINEER",
                 "ISSUE",
@@ -266,4 +333,65 @@ public class IssueServiceImpl implements IssueService {
                 "Auto-assigned to engineer " + selectedEngineer.getEmail()
         );
     }
+
+    @Override
+    public SlaStatusResponse getSlaStatus(Long issueId) {
+
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = issue.getSlaStartTime();
+        LocalDateTime due = issue.getSlaDueTime();
+
+        if (start == null || due == null) {
+            throw new RuntimeException("SLA not initialized for this issue");
+        }
+
+        long totalMinutes = Duration.between(start, due).toMinutes();
+        long remainingMinutes = Duration.between(now, due).toMinutes();
+
+        String status;
+
+        if (now.isAfter(due)) {
+            status = "BREACHED";
+            remainingMinutes = 0;
+
+            recordSlaBreachIfNeeded(issue, due, now);
+        } else if (remainingMinutes <= totalMinutes * 0.2) {
+            status = "AT_RISK";
+        } else {
+            status = "ON_TRACK";
+        }
+
+        return SlaStatusResponse.builder()
+                .slaStartTime(start)
+                .slaDueTime(due)
+                .remainingMinutes(remainingMinutes)
+                .status(status)
+                .build();
+    }
+
+    @Override
+    public SlaComplianceResponse getSlaComplianceSummary() {
+
+        long totalIssues = issueRepository.count();
+        long breached = issueRepository.countBySlaBreachedTrue();
+        long met = totalIssues - breached;
+
+        double compliance = totalIssues == 0
+                ? 100.0
+                : ((double) met / totalIssues) * 100;
+
+        return SlaComplianceResponse.builder()
+                .totalIssues(totalIssues)
+                .slaBreached(breached)
+                .slaMet(met)
+                .compliancePercentage(
+                        Math.round(compliance * 100.0) / 100.0
+                )
+                .build();
+    }
+
+
 }

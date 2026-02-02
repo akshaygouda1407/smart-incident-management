@@ -8,6 +8,7 @@ import com.smartims.repository.IssueRepository;
 import com.smartims.service.DashboardService;
 import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ public class DashboardController {
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> summary() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Dashboard summary fetched successfully",
                 dashboardService.getSummary()
         );
@@ -34,6 +36,7 @@ public class DashboardController {
     @GetMapping("/status")
     public ResponseEntity<ApiResponse<List<KeyValueCountResponse>>> statusWise() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Status-wise distribution fetched successfully",
                 dashboardService.getStatusDistribution()
         );
@@ -42,6 +45,7 @@ public class DashboardController {
     @GetMapping("/severity")
     public ResponseEntity<ApiResponse<List<KeyValueCountResponse>>> severityWise() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Severity-wise distribution fetched successfully",
                 dashboardService.getSeverityDistribution()
         );
@@ -50,6 +54,7 @@ public class DashboardController {
     @GetMapping("/priority")
     public ResponseEntity<ApiResponse<List<KeyValueCountResponse>>> priorityWise() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Priority-wise distribution fetched successfully",
                 dashboardService.getPriorityDistribution()
         );
@@ -59,6 +64,7 @@ public class DashboardController {
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ResponseEntity<ApiResponse<List<Issue>>> getSlaBreaches() {
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "SLA breached issues fetched successfully",
                 issueRepository.findBySlaBreachedTrue()
         );
@@ -70,6 +76,7 @@ public class DashboardController {
             @PathVariable Long projectId) {
 
         return ResponseUtil.success(
+                HttpStatus.OK,
                 "Project dashboard fetched successfully",
                 dashboardService.getProjectDashboard(projectId)
         );

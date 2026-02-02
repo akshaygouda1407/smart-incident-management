@@ -8,6 +8,7 @@ import com.smartims.enums.IssueStatus;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.service.AdminService;
+import com.smartims.service.IssueActivityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final IssueRepository issueRepository;
     private final UserRepository userRepository;
+    private final IssueActivityService issueActivityService;
 
     @Override
     public AdminOverviewResponse getOverview() {
@@ -46,6 +48,12 @@ public class AdminServiceImpl implements AdminService {
 
         issue.setPriorityLevel(priority);
         issueRepository.save(issue);
+
+        issueActivityService.logActivity(
+                issue,
+                "PRIORITY_CHANGED",
+                "Priority changed to " + priority
+        );
     }
 
     @Override

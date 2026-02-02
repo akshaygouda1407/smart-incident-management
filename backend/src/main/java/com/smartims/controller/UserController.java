@@ -1,24 +1,126 @@
 package com.smartims.controller;
 
-import com.smartims.dto.ApiResponse;
+import com.smartims.dto.*;
+import com.smartims.service.UserService;
 import com.smartims.util.ResponseUtil;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
 
-    @GetMapping("/profile")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'ENGINEER')")
-    public ResponseEntity<ApiResponse<String>> userProfile() {
+    private final UserService userService;
 
-        return ResponseUtil.success(
-                "User profile access granted",
-                "User profile access granted"
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+//    @GetMapping("/profile")
+//    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'ENGINEER')")
+//    public ResponseEntity<ApiResponse<String>> userProfile() {
+//
+//        return ResponseUtil.success(
+//                "User profile access granted",
+//                "User profile access granted"
+//        );
+//    }
+
+    // POST - Create user
+    @PostMapping
+    public ResponseEntity<UserResponse> createUser(
+            @RequestBody UserCreateRequest request) {
+        return ResponseEntity.ok(userService.createUser(request));
+    }
+
+    // GET - All users
+    @GetMapping
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    // GET - User by ID
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(userService.getUserById(id));
+    }
+
+    // PUT - Update user
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long id,
+            @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(userService.updateUser(id, request));
+    }
+
+    // DELETE - Delete user
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<Void>> updateUserStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateUserStatusRequest request) {
+
+        userService.updateUserStatus(id, request.isEnabled());
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        request.isEnabled()
+                                ? "User enabled successfully"
+                                : "User disabled successfully",
+                        null,
+                        true
+                )
         );
     }
+
+    @PutMapping("/{id}/lock")
+    public ResponseEntity<ApiResponse<Void>> updateUserLockStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateUserLockRequest request) {
+
+        userService.updateUserLockStatus(id, request.isLocked());
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        request.isLocked()
+                                ? "User locked successfully"
+                                : "User unlocked successfully",
+                        null,
+                        true
+                )
+        );
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestBody ChangePasswordRequest request) {
+
+        userService.changePassword(request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "SUCCESS",
+                        "Password changed successfully",
+                        null,
+                        true
+                )
+        );
+    }
+
 }

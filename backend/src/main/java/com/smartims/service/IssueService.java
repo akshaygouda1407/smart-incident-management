@@ -1,6 +1,8 @@
 package com.smartims.service;
 
 import com.smartims.dto.CreateIssueRequest;
+import com.smartims.dto.SlaComplianceResponse;
+import com.smartims.dto.SlaStatusResponse;
 import com.smartims.entity.Issue;
 import com.smartims.enums.IssueStatus;
 
@@ -24,4 +26,9 @@ public interface IssueService {
     void assignEngineer(Long issueId, Long engineerId);
 
     void autoAssignEngineer(Long issueId);
+
+    SlaStatusResponse getSlaStatus(Long issueId);
+
+    SlaComplianceResponse getSlaComplianceSummary();
+
 }
