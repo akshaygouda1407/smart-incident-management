@@ -57,6 +57,8 @@ public class SlaServiceImpl implements SlaService {
 
                         issue.setSlaBreached(true);
 
+                        escalateIfNeeded(issue, "BREACHED");
+
                         notificationInboxService.notifyForIssueEvent(
                                 "SLA_BREACHED",
                                 "SLA breached for issue: " + issue.getTitle(),
@@ -99,8 +101,12 @@ public class SlaServiceImpl implements SlaService {
         if (now.isAfter(due)) {
             status = "BREACHED";
             remainingMinutes = 0;
+
+            escalateIfNeeded(issue, status);
         } else if (remainingMinutes <= totalMinutes * 0.2) {
             status = "AT_RISK";
+
+            escalateIfNeeded(issue, status);
         } else {
             status = "ON_TRACK";
         }
@@ -111,6 +117,30 @@ public class SlaServiceImpl implements SlaService {
                 .remainingMinutes(remainingMinutes)
                 .status(status)
                 .build();
+    }
+
+    private void escalateIfNeeded(Issue issue, String slaStatus) {
+
+        if (Boolean.TRUE.equals(issue.getEscalated())) {
+            return;
+        }
+
+        issue.setEscalated(true);
+        issueRepository.save(issue);
+
+        notificationInboxService.notifyForIssueEvent(
+                "ISSUE_ESCALATED",
+                "Issue '" + issue.getTitle()
+                        + "' escalated due to SLA status: " + slaStatus,
+                issue
+        );
+
+        auditLogService.log(
+                "AUTO_ESCALATION",
+                "ISSUE",
+                issue.getId(),
+                "Issue auto-escalated due to SLA status: " + slaStatus
+        );
     }
 
 }

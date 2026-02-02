@@ -55,5 +55,4 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
     long countBySlaBreachedTrue();
     long count();
 
-
 }

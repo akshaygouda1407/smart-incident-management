@@ -18,29 +18,14 @@ public class SlaScheduler {
     private final IssueRepository issueRepository;
     private final SlaService slaService;
 
-//    @Scheduled(fixedRate = 60000)
-//    @Transactional
-//    public void checkSlaBreaches() {
-//
-//        List<Issue> openIssues =
-//                issueRepository.findByStatus(IssueStatus.OPEN);
-//
-//        for (Issue issue : openIssues) {
-//            slaService.checkAndMarkBreach(issue);
-//        }
-//    }
-
-    @Scheduled(fixedRate = 60000) // every 1 minute
+    @Scheduled(fixedRate = 300000) // every 5 minute
     @Transactional
     public void checkSlaBreaches() {
-
-        System.out.println("🔥 SLA Scheduler running");
 
         List<Issue> openIssues =
                 issueRepository.findByStatus(IssueStatus.OPEN);
 
         for (Issue issue : openIssues) {
-            System.out.println("Checking issue ID = " + issue.getId());
             slaService.checkAndMarkBreach(issue);
         }
     }

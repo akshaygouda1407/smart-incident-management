@@ -52,11 +52,13 @@ public class Issue {
     private LocalDateTime slaStartTime;
     private LocalDateTime slaDueTime;
     private boolean slaBreached;
+    private Boolean escalated;
+
 
     @PrePersist
     void onCreate() {
         this.slaBreached = false;
+        this.escalated = false;
     }
-
 
 }
