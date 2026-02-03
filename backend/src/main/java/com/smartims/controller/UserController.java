@@ -2,9 +2,10 @@ package com.smartims.controller;
 
 import com.smartims.dto.*;
 import com.smartims.service.UserService;
-import com.smartims.util.ResponseUtil;
+import com.smartims.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,24 +20,14 @@ public class UserController {
         this.userService = userService;
     }
 
-//    @GetMapping("/profile")
-//    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'MANAGER', 'ENGINEER')")
-//    public ResponseEntity<ApiResponse<String>> userProfile() {
-//
-//        return ResponseUtil.success(
-//                "User profile access granted",
-//                "User profile access granted"
-//        );
-//    }
-
     // POST - Create user
     @PostMapping
-    public ResponseEntity<ApiResponse<UserResponse>> createUser(
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ApiResponse<UserResponse> createUser(
             @RequestBody UserCreateRequest request) {
         UserResponse response = userService.createUser(request);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "User created successfully",
                 response
         );
@@ -44,10 +35,9 @@ public class UserController {
 
     // GET - All users
     @GetMapping
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
+    public ApiResponse<List<UserResponse>> getAllUsers() {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Users fetched successfully",
                 userService.getAllUsers()
         );
@@ -56,11 +46,10 @@ public class UserController {
 
     // GET - User by ID
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(
+    public ApiResponse<UserResponse> getUserById(
             @PathVariable Long id) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "User fetched successfully",
                 userService.getUserById(id)
         );
@@ -69,12 +58,11 @@ public class UserController {
 
     // PUT - Update user
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+    public ApiResponse<UserResponse> updateUser(
             @PathVariable Long id,
             @RequestBody UserUpdateRequest request) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "User updated successfully",
                 userService.updateUser(id, request)
         );
@@ -83,13 +71,12 @@ public class UserController {
 
     // DELETE - Delete user
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(
+    public ApiResponse<Void> deleteUser(
             @PathVariable Long id) {
 
         userService.deleteUser(id);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "User deleted successfully",
                 null
         );
@@ -104,14 +91,11 @@ public class UserController {
         userService.updateUserStatus(id, request.isEnabled());
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         request.isEnabled()
                                 ? "User enabled successfully"
                                 : "User disabled successfully",
-                        null,
-                        true
+                        null
                 )
         );
     }
@@ -124,14 +108,11 @@ public class UserController {
         userService.updateUserLockStatus(id, request.isLocked());
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         request.isLocked()
                                 ? "User locked successfully"
                                 : "User unlocked successfully",
-                        null,
-                        true
+                        null
                 )
         );
     }
@@ -143,14 +124,10 @@ public class UserController {
         userService.changePassword(request);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         "Password changed successfully",
-                        null,
-                        true
+                        null
                 )
         );
     }
-
 }

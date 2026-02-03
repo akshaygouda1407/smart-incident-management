@@ -9,11 +9,8 @@ import com.smartims.repository.SlaPolicyRepository;
 import com.smartims.service.AdminSlaService;
 import com.smartims.service.NotificationService;
 import com.smartims.service.SlaService;
-import com.smartims.util.ResponseUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,11 +34,10 @@ public class AdminSlaController {
 //    }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<SlaResponse>> createPolicy(
+    public ApiResponse<SlaResponse> createPolicy(
             @RequestBody @Valid SlaCreateRequest request) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "SLA policy created successfully",
                 slaService.createSla(request)
         );

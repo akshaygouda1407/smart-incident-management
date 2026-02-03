@@ -84,16 +84,12 @@ public class IssueServiceImpl implements IssueService {
                 .slaBreached(false)
                 .build();
 
-        SlaPolicy slaPolicy = slaPolicyRepository
-                .findByPriorityLevel(issue.getPriorityLevel())
-                .orElseThrow(() -> new RuntimeException("SLA policy not found"));
+//        SlaPolicy slaPolicy = slaPolicyRepository
+//                .findByPriorityLevel(issue.getPriorityLevel())
+//                .orElseThrow(() -> new RuntimeException("SLA policy not found"));
 
         issue.setSlaStartTime(LocalDateTime.now());
-        issue.setSlaDueTime(
-                LocalDateTime.now().plusMinutes(
-                        slaPolicy.getResolutionTimeMinutes()
-                )
-        );
+        issue.setSlaDueTime(LocalDateTime.now().plusMinutes(60));
 
 
         issueRepository.save(issue);

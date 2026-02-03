@@ -17,6 +17,9 @@ public class AuditLogServiceImpl implements AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
+    public static final String SYSTEM_EMAIL = "system@smartims.local";
+    public static final String SYSTEM_ROLE  = "SYSTEM";
+
 
     @Override
     public void log(String action, String entityType, Long entityId, String description) {
@@ -24,12 +27,17 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     @Override
-    public void logSystem(String action, String details) {
+    public void logSystem(String action, String details,
+                          Long entityId,
+                          String entityType) {
 
         AuditLog auditLog = AuditLog.builder()
                 .action(action)
-                .description(details)
+                .actorEmail("system@smartims.local")
                 .actorRole("SYSTEM")
+                .description(details)
+                .entityId(entityId)
+                .entityType(entityType)
                 .timestamp(LocalDateTime.now())
                 .build();
 
@@ -47,7 +55,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         String performedBy;
 
         if (auth == null || !auth.isAuthenticated()) {
-            performedBy = "SYSTEM"; // 👈 IMPORTANT
+            performedBy = "SYSTEM";
         } else {
             performedBy = auth.getName();
         }

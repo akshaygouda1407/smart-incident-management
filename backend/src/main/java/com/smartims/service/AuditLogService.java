@@ -9,7 +9,11 @@ public interface AuditLogService {
             String description
     );
 
-    void logSystem(String action, String details);
+//    void logSystem(String action, String details);
+
+    void logSystem(String action, String details,
+                   Long entityId,
+                   String entityType);
 
     void log(String action, String details);
 }

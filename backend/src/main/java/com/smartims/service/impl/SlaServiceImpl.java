@@ -99,8 +99,11 @@ public class SlaServiceImpl implements SlaService {
 
                         auditLogService.logSystem(
                                 "SLA_ESCALATED",
-                                "Issue " + issue.getId() + " escalated due to SLA breach"
+                                "Issue " + issue.getId() + " escalated due to SLA breach",
+                                issue.getId(),
+                                "ISSUE"
                         );
+
 
 
 

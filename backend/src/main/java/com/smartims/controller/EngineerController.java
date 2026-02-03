@@ -1,12 +1,10 @@
 package com.smartims.controller;
 
 import com.smartims.dto.ApiResponse;
+import com.smartims.dto.EngineerDashboardResponse;
 import com.smartims.entity.Issue;
 import com.smartims.service.EngineerService;
-import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -22,32 +20,29 @@ public class EngineerController {
     private final EngineerService engineerService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<Object>> getDashboard(Authentication authentication) {
-        return ResponseUtil.success(
-                HttpStatus.OK,
+    public ApiResponse<EngineerDashboardResponse> getDashboard(Authentication authentication) {
+        return ApiResponse.success(
                 "Engineer dashboard fetched successfully",
                 engineerService.getDashboard(authentication.getName())
         );
     }
 
     @GetMapping("/issues")
-    public ResponseEntity<ApiResponse<List<Issue>>> getMyIssues(Authentication authentication) {
-        return ResponseUtil.success(
-                HttpStatus.OK,
+    public ApiResponse<List<Issue>> getMyIssues(Authentication authentication) {
+        return ApiResponse.success(
                 "Engineer issues fetched successfully",
                 engineerService.getMyIssues(authentication.getName())
         );
     }
 
     @PutMapping("/issues/{id}/status")
-    public ResponseEntity<ApiResponse<Void>> updateIssueStatus(
+    public ApiResponse<Object> updateIssueStatus(
             @PathVariable Long id,
             Authentication authentication) {
 
         engineerService.updateIssueStatus(id, authentication.getName());
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issue status updated successfully",
                 null
         );

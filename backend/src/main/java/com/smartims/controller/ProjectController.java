@@ -28,45 +28,38 @@ public class ProjectController {
 
         ProjectResponse response = projectService.createProject(request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(
-                        HttpStatus.CREATED.value(),
-                        "SUCCESS",
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(
                         "Project created successfully",
-                        response,
-                        true
+                        response
                 ));
     }
+
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProjectResponse>>> getAllProjects() {
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         "Projects fetched successfully",
-                        projectService.getAllProjects(),
-                        true
+                        projectService.getAllProjects()
                 )
         );
     }
+
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ProjectResponse>> getProjectById(
             @PathVariable Long id) {
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         "Project fetched successfully",
-                        projectService.getProjectById(id),
-                        true
+                        projectService.getProjectById(id)
                 )
         );
     }
+
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ProjectResponse>> updateProject(
@@ -74,15 +67,13 @@ public class ProjectController {
             @RequestBody UpdateProjectRequest request) {
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         "Project updated successfully",
-                        projectService.updateProject(id, request),
-                        true
+                        projectService.updateProject(id, request)
                 )
         );
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteProject(
@@ -91,13 +82,11 @@ public class ProjectController {
         projectService.deleteProject(id);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "SUCCESS",
+                ApiResponse.success(
                         "Project deleted successfully",
-                        null,
-                        true
+                        null
                 )
         );
     }
+
 }

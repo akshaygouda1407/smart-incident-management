@@ -37,6 +37,7 @@ public class IssueCommentServiceImpl implements IssueCommentService {
         comment.setComment(commentText);
         comment.setUser(user);
         comment.setIssue(issue);
+        comment.setCommentedBy(user);
 
         issueCommentRepository.save(comment);
         return null;

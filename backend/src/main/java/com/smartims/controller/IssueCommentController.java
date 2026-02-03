@@ -1,13 +1,11 @@
 package com.smartims.controller;
 
+import com.smartims.dto.ApiResponse;
 import com.smartims.dto.IssueCommentRequest;
 import com.smartims.dto.IssueCommentResponse;
 import com.smartims.service.IssueCommentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/issues/{issueId}/comments")
@@ -18,22 +16,30 @@ public class IssueCommentController {
 
     // Add comment
     @PostMapping
-    public ResponseEntity<IssueCommentResponse> addComment(
+    public ApiResponse<IssueCommentResponse> addComment(
             @PathVariable Long issueId,
             @RequestBody IssueCommentRequest request) {
 
-        return ResponseEntity.ok(
-                commentService.addComment(issueId, request.getComment())
+        IssueCommentResponse response =
+                commentService.addComment(issueId, request.getComment());
+
+        return  ApiResponse.success(
+                "Comment added successfully",
+                response
         );
     }
 
     // Get comments
     @GetMapping
-    public ResponseEntity<List<IssueCommentResponse>> getComments(
-            @PathVariable Long issueId) {
+    public ApiResponse<IssueCommentResponse> getComments(
+            @PathVariable Long issueId,@RequestBody IssueCommentRequest request) {
 
-        return ResponseEntity.ok(
-                commentService.getComments(issueId)
+        IssueCommentResponse response =
+                commentService.addComment(issueId, request.getComment());
+
+        return  ApiResponse.success(
+                "Issue comments fetched successfully",
+                response
         );
     }
 }

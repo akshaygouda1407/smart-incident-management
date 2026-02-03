@@ -1,5 +1,6 @@
 package com.smartims.controller;
 
+import com.smartims.dto.ApiResponse;
 import com.smartims.dto.IssueAttachmentResponse;
 import com.smartims.service.IssueAttachmentService;
 import lombok.RequiredArgsConstructor;
@@ -19,22 +20,30 @@ public class IssueAttachmentController {
 
     // Upload
     @PostMapping("/api/issues/{issueId}/attachments")
-    public ResponseEntity<IssueAttachmentResponse> upload(
+    public ApiResponse<IssueAttachmentResponse> upload(
             @PathVariable Long issueId,
             @RequestParam("file") MultipartFile file) {
 
-        return ResponseEntity.ok(
-                attachmentService.upload(issueId, file)
+        IssueAttachmentResponse response =
+                attachmentService.upload(issueId, file);
+
+        return ApiResponse.success(
+                "Attachment uploaded successfully",
+                response
         );
     }
 
     // List
     @GetMapping("/api/issues/{issueId}/attachments")
-    public ResponseEntity<List<IssueAttachmentResponse>> list(
+    public ApiResponse<List<IssueAttachmentResponse>> list(
             @PathVariable Long issueId) {
 
-        return ResponseEntity.ok(
-                attachmentService.getAttachments(issueId)
+        List<IssueAttachmentResponse> response =
+                attachmentService.getAttachments(issueId);
+
+        return ApiResponse.success(
+                "Issue attachments fetched successfully",
+                response
         );
     }
 

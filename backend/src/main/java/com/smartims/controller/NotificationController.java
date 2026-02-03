@@ -5,10 +5,7 @@ import com.smartims.entity.User;
 import com.smartims.entity.UserNotification;
 import com.smartims.repository.UserNotificationRepository;
 import com.smartims.repository.UserRepository;
-import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,14 +20,13 @@ public class NotificationController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<UserNotification>>> myNotifications(
+    public ApiResponse<List<UserNotification>> myNotifications(
             Authentication auth) {
 
         User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow();
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Notifications fetched successfully",
                 userNotificationRepository
                         .findByUserOrderByReceivedAtDesc(user)
@@ -38,13 +34,12 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    public ResponseEntity<ApiResponse<Long>> unreadCount(Authentication auth) {
+    public ApiResponse<Long> unreadCount(Authentication auth) {
 
         User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow();
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Unread notification count fetched successfully",
                 userNotificationRepository
                         .countByUserAndReadFalse(user)
@@ -52,7 +47,7 @@ public class NotificationController {
     }
 
     @PutMapping("/{id}/read")
-    public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {
+    public ApiResponse<Object> markAsRead(@PathVariable Long id) {
 
         UserNotification notification =
                 userNotificationRepository.findById(id)
@@ -61,8 +56,7 @@ public class NotificationController {
         notification.setRead(true);
         userNotificationRepository.save(notification);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Notification marked as read",
                 null
         );

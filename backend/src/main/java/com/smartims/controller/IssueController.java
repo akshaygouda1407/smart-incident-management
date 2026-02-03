@@ -23,7 +23,7 @@ public class IssueController {
 
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
     @PostMapping
-    public ResponseEntity<ApiResponse<Void>> createIssue(
+    public ApiResponse<Void> createIssue(
             @Valid @RequestBody CreateIssueRequest request,
             Authentication authentication
     ) {
@@ -31,15 +31,15 @@ public class IssueController {
 
         issueService.createIssue(request, email);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issue created successfully",
                 null
         );
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<Void>> updateIssueStatus(
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER','ENGINEER')")
+    public ApiResponse<Void> updateIssueStatus(
             @PathVariable Long id,
             @Valid @RequestBody UpdateIssueStatusRequest request,
             Authentication authentication
@@ -51,8 +51,7 @@ public class IssueController {
 
         issueService.updateIssueStatus(id, request.getStatus(), role);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issue status updated successfully",
                 null
         );
@@ -60,43 +59,39 @@ public class IssueController {
 
     @GetMapping("/project/{projectId}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER','ENGINEER','USER')")
-    public ResponseEntity<ApiResponse<List<Issue>>> getIssuesByProject(
+    public ApiResponse<List<Issue>> getIssuesByProject(
             @PathVariable Long projectId) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Project issues fetched successfully",
                 issueService.getIssuesByProject(projectId)
         );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<IssueResponse>> getIssueById(
+    public ApiResponse<IssueResponse> getIssueById(
             @PathVariable Long id) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issue fetched successfully",
                 issueService.getIssueById(id)
         );
     }
 
     @GetMapping("/{id}/issues")
-    public ResponseEntity<ApiResponse<List<IssueResponse>>> getEngineerIssues(
+    public ApiResponse<List<IssueResponse>> getEngineerIssues(
             @PathVariable Long id) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Engineer issues fetched successfully",
                 issueService.getIssuesByEngineer(id)
         );
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<IssueResponse>>> getAllIssues() {
+    public ApiResponse<List<IssueResponse>> getAllIssues() {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issues fetched successfully",
                 issueService.getAllIssues()
         );
@@ -104,26 +99,24 @@ public class IssueController {
 
     @PutMapping("/{issueId}/assign/{engineerId}")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<ApiResponse<Void>> assignEngineer(
+    public ApiResponse<Void> assignEngineer(
             @PathVariable Long issueId,
             @PathVariable Long engineerId) {
 
         issueService.assignEngineer(issueId, engineerId);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Engineer assigned successfully",
                 null
         );
     }
 
     @PostMapping("/{id}/assign")
-    public ResponseEntity<ApiResponse<IssueResponse>> assignIssue(
+    public ApiResponse<IssueResponse> assignIssue(
             @PathVariable Long id,
             @RequestBody AssignIssueRequest request) {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issue assigned successfully",
                 issueService.assignIssue(id, request.getEngineerId())
         );
@@ -131,39 +124,36 @@ public class IssueController {
 
     @PutMapping("/{issueId}/auto-assign")
     @PreAuthorize("hasRole('MANAGER')")
-    public ResponseEntity<ApiResponse<Void>> autoAssignEngineer(
+    public ApiResponse<Void> autoAssignEngineer(
             @PathVariable Long issueId) {
 
         issueService.autoAssignEngineer(issueId);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Engineer auto-assigned successfully",
                 null
         );
     }
 
     @GetMapping("/{id}/sla-status")
-    public ResponseEntity<ApiResponse<SlaStatusResponse>> getSlaStatus(
+    public ApiResponse<SlaStatusResponse> getSlaStatus(
             @PathVariable Long id) {
 
         SlaStatusResponse response = issueService.getSlaStatus(id);
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "SLA status fetched successfully",
                 response
         );
     }
 
     @GetMapping("/sla/compliance")
-    public ResponseEntity<ApiResponse<SlaComplianceResponse>> getSlaCompliance() {
+    public ApiResponse<SlaComplianceResponse> getSlaCompliance() {
 
         SlaComplianceResponse response =
                 issueService.getSlaComplianceSummary();
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "SLA compliance summary fetched successfully",
                 response
         );

@@ -6,10 +6,7 @@ import com.smartims.dto.UpdatePriorityRequest;
 import com.smartims.dto.ApiResponse;
 import com.smartims.entity.Issue;
 import com.smartims.service.AdminService;
-import com.smartims.util.ResponseUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,23 +21,18 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<ApiResponse<String>> adminDashboard() {
+    public ApiResponse<Object> adminDashboard() {
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
-                "Admin dashboard access granted",
-                "Admin dashboard access granted"
-        );
+        return ApiResponse.success("Admin dashboard access granted");
     }
 
 
     @GetMapping("/overview")
-    public ResponseEntity<ApiResponse<AdminOverviewResponse>> getOverview() {
+    public ApiResponse<AdminOverviewResponse> getOverview() {
 
         AdminOverviewResponse response = adminService.getOverview();
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Admin overview fetched successfully",
                 response
         );
@@ -48,12 +40,11 @@ public class AdminController {
 
 
     @GetMapping("/issues")
-    public ResponseEntity<ApiResponse<List<Issue>>> getAllIssues() {
+    public ApiResponse<List<Issue>> getAllIssues() {
 
         List<Issue> issues = adminService.getAllIssues();
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Issues fetched successfully",
                 issues
         );
@@ -61,14 +52,13 @@ public class AdminController {
 
 
     @PutMapping("/issues/{id}/priority")
-    public ResponseEntity<ApiResponse<Void>> updatePriority(
+    public ApiResponse<Object> updatePriority(
             @PathVariable Long id,
             @RequestBody UpdatePriorityRequest request) {
 
         adminService.updatePriority(id, request.getPriority());
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Priority updated successfully",
                 null
         );
@@ -76,14 +66,13 @@ public class AdminController {
 
 
     @PutMapping("/issues/{id}/assign")
-    public ResponseEntity<ApiResponse<Void>> assignEngineer(
+    public ApiResponse<Object> assignEngineer(
             @PathVariable Long id,
             @RequestBody AssignIssueRequest request) {
 
         adminService.assignEngineer(id, request.getEngineerId());
 
-        return ResponseUtil.success(
-                HttpStatus.OK,
+        return ApiResponse.success(
                 "Engineer assigned successfully",
                 null
         );
