@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
+import LoadingButton from "../../components/common/LoadingButton";
 import { login } from "../../api/authApi";
 import { showSuccess, showError } from "../../utils/toast";
-
+import bgImage from "../../assets/background.png";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,11 +14,12 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
 
     try {
       const res = await login(email, password);
-
       const data = res?.data?.data;
 
       if (!data?.token || !data?.role) {
@@ -36,65 +38,62 @@ export default function Login() {
         data.role === "ENGINEER" ? "/engineer" :
         "/user"
       );
-
     } catch (err) {
-      // THIS IS THE KEY PART
-      console.log("LOGIN ERROR RESPONSE:", err?.response);
-
-      const backendMessage =
-        err?.response?.data?.message;
-
       showError(
-        backendMessage || "Invalid email or password"
+        err?.response?.data?.message || "Invalid email or password"
       );
-
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    <AuthCard
-      title="Welcome back"
-      subtitle="Sign in to your ServicePlus account"
-      footer={
-        <Link
-          to="/forgot-password"
-          className="text-blue-600 font-medium hover:underline"
-        >
-          Forgot password?
-        </Link>
-      }
+    <div
+      className="relative min-h-screen flex items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: `url(${bgImage})` }}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="absolute inset-0 bg-white/20" />
 
-        <input
-          type="email"
-          placeholder="Email Address"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-        />
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+      <div className="relative z-10">
+        <AuthCard
+          title="Welcome back"
+          subtitle="Sign in to your ServicePlus account"
+          footer={
+            <Link
+              to="/forgot-password"
+              className="text-blue-600 font-medium hover:underline"
+            >
+              Forgot password?
+            </Link>
+          }
         >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-      </form>
-    </AuthCard>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Email Address"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 bg-white/40 backdrop-blur px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 bg-white/40 backdrop-blur px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            <LoadingButton
+              loading={loading}
+              text="Login"
+              loadingText="Logging in..."
+            />
+          </form>
+        </AuthCard>
+      </div>
+    </div>
   );
 }

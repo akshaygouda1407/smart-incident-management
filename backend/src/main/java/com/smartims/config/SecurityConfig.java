@@ -33,7 +33,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register/**",
                                 "/api/auth/forgot-password/**",
-                                "/api/contact/submit"
+                                "/api/contact/submit",
+                                "/actuator/**"
                         ).permitAll()
 
                         .anyRequest().authenticated()

@@ -4,6 +4,7 @@ import com.smartims.dto.UpdateSlaPolicyRequest;
 import com.smartims.entity.SlaPolicy;
 import com.smartims.repository.SlaPolicyRepository;
 import com.smartims.service.AdminSlaService;
+import com.smartims.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class AdminSlaServiceImpl extends AdminSlaService {
 
     private final SlaPolicyRepository slaPolicyRepository;
+    private final AuditLogService auditLogService;
 
     @Override
     public SlaPolicy updatePolicy(
@@ -26,11 +28,27 @@ public class AdminSlaServiceImpl extends AdminSlaService {
                                 "SLA policy not found for priority " + priorityLevel)
                 );
 
+        Integer oldResolutionTime = policy.getResolutionTimeMinutes();
+
         policy.setResolutionTimeMinutes(
                 toMinutes(request.getResolutionTimeMinutes())
         );
 
-        return slaPolicyRepository.save(policy);
+        SlaPolicy updatedPolicy = slaPolicyRepository.save(policy);
+
+        auditLogService.log(
+                "SLA_POLICY_UPDATED",
+                "SLA_POLICY",
+                updatedPolicy.getId(),
+                "SLA resolution time updated from "
+                        + oldResolutionTime
+                        + " to "
+                        + updatedPolicy.getResolutionTimeMinutes()
+                        + " minutes for priority "
+                        + priorityLevel
+        );
+
+        return updatedPolicy;
     }
 
     private Integer toMinutes(long minutes) {

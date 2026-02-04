@@ -7,7 +7,9 @@ import com.smartims.entity.User;
 import com.smartims.repository.IssueCommentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueCommentService;
+import com.smartims.service.NotificationInboxService;
 import com.smartims.util.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,8 @@ public class IssueCommentServiceImpl implements IssueCommentService {
     private final IssueRepository issueRepository;
     private final IssueCommentRepository issueCommentRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+    private final NotificationInboxService notificationInboxService;
 
     @Override
     public IssueCommentResponse addComment(Long issueId, String commentText) {
@@ -39,8 +43,22 @@ public class IssueCommentServiceImpl implements IssueCommentService {
         comment.setIssue(issue);
         comment.setCommentedBy(user);
 
-        issueCommentRepository.save(comment);
-        return null;
+        IssueComment savedComment = issueCommentRepository.save(comment);
+
+        notificationInboxService.notifyForIssueEvent(
+                "ISSUE_COMMENT_ADDED",
+                "New comment added to issue: " + issue.getTitle(),
+                issue
+        );
+
+        auditLogService.log(
+                "ISSUE_COMMENT_ADDED",
+                "ISSUE",
+                issue.getId(),
+                "Comment added by " + user.getFullName()
+        );
+
+        return map(savedComment);
     }
 
     @Override

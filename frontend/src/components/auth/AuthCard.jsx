@@ -1,30 +1,38 @@
-import AuthIllustration from "./AuthIllustration";
-
 export default function AuthCard({ title, subtitle, children, footer }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-xl p-8">
+    <div
+      className="
+        w-[580px]
+        backdrop-blur-xl
+        rounded-3xl
+        border border-white/30
+        px-20
+        py-10
+        -mt-35
+      "
+    >
+      <h2 className="text-2xl font-bold text-gray-900 text-center">
+        <img
+          src="/src/assets/auth-illustration.png"
+          alt="ServicePulse Logo"
+          className="mx-auto mb-2 w-30 h-30"
+        />
+        {title}
+      </h2>
 
-        <AuthIllustration />
+      <p className="mt-1 text-sm text-gray-700 text-center">
+        {subtitle}
+      </p>
 
-        <h2 className="text-xl font-semibold text-gray-900 text-center">
-          {title}
-        </h2>
-
-        <p className="text-sm text-gray-500 text-center mt-1">
-          {subtitle}
-        </p>
-
-        <div className="mt-6">
-          {children}
-        </div>
-
-        {footer && (
-          <div className="mt-6 text-center text-sm text-gray-600">
-            {footer}
-          </div>
-        )}
+      <div className="mt-6">
+        {children}
       </div>
+
+      {footer && (
+        <div className="mt-6 text-center text-sm">
+          {footer}
+        </div>
+      )}
     </div>
   );
 }

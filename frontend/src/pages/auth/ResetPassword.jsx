@@ -29,7 +29,7 @@ export default function ResetPassword() {
     try {
       setLoading(true);
       await resetPassword(email, password);
-      showSuccess("Password updated successfully 🔐");
+      showSuccess("Password updated successfully");
       navigate("/login");
     } catch {
       showError("Failed to reset password");

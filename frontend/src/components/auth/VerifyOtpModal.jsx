@@ -13,6 +13,7 @@ const RESEND_SECONDS = 30;
 export default function VerifyOtpModal({ email, purpose, onClose }) {
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [isOtpExpired, setIsOtpExpired] = useState(false);
 
@@ -50,18 +51,19 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
 
   /* -------------------- VERIFY OTP -------------------- */
   const handleVerify = async (code) => {
+    if (loading) return;
+
     setLoading(true);
+
     try {
       if (purpose === "REGISTER") {
         await verifyRegisterOtp(email, code);
       } else {
-        
         await verifyForgotOtp(email, code);
       }
 
       showSuccess("OTP verified successfully");
       onClose(true);
-
     } catch (err) {
       showError(err?.response?.data?.message || "Invalid OTP");
 
@@ -93,6 +95,10 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
 
   /* -------------------- RESEND OTP -------------------- */
   const handleResend = async () => {
+    if (resendLoading) return;
+
+    setResendLoading(true);
+
     try {
       if (purpose === "REGISTER") {
         await requestRegisterOtp(email);
@@ -101,13 +107,15 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
       }
 
       showSuccess("New OTP sent to your email");
+
       setSecondsLeft(RESEND_SECONDS);
       setIsOtpExpired(false);
       setOtp(Array(OTP_LENGTH).fill(""));
       submittedRef.current = false;
-
     } catch {
       showError("Failed to resend OTP");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -116,6 +124,7 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
     <div className="otp-overlay">
       <div className="otp-card">
         <h2 className="text-lg font-semibold">Verify Email</h2>
+
         <p className="text-sm text-gray-600 mt-1">
           Enter the 6-digit code sent to <b>{email}</b>
         </p>
@@ -127,17 +136,23 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
               id={`otp-${i}`}
               maxLength="1"
               value={v}
+              disabled={loading}
               onChange={(e) => handleChange(i, e.target.value)}
             />
           ))}
         </div>
 
+        {/* Resend */}
         {isOtpExpired ? (
           <button
             onClick={handleResend}
-            className="w-full text-blue-600 font-medium"
+            disabled={resendLoading}
+            className="w-full text-blue-600 font-medium flex justify-center gap-2"
           >
-            Resend OTP
+            {resendLoading && (
+              <span className="h-4 w-4 border-2 border-blue-500/50 border-t-blue-600 rounded-full animate-spin" />
+            )}
+            {resendLoading ? "Sending..." : "Resend OTP"}
           </button>
         ) : (
           <p className="text-sm text-gray-500">
@@ -145,16 +160,32 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
           </p>
         )}
 
+        {/* Verify Button */}
         <button
           onClick={() => handleVerify(otp.join(""))}
           disabled={otp.join("").length !== OTP_LENGTH || loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg mt-3"
+          className={`
+            w-full
+            flex items-center justify-center gap-2
+            py-2
+            rounded-lg
+            mt-3
+            text-white
+            transition
+            ${loading
+              ? "bg-blue-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700"}
+          `}
         >
+          {loading && (
+            <span className="h-4 w-4 border-2 border-white/60 border-t-white rounded-full animate-spin" />
+          )}
           {loading ? "Verifying..." : "Verify OTP"}
         </button>
 
         <button
           onClick={() => onClose(false)}
+          disabled={loading}
           className="mt-2 text-sm text-gray-500"
         >
           Cancel

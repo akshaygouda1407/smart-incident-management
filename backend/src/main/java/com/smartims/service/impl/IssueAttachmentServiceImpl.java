@@ -7,7 +7,9 @@ import com.smartims.entity.User;
 import com.smartims.repository.IssueAttachmentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueAttachmentService;
+import com.smartims.service.NotificationInboxService;
 import com.smartims.util.AuthUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -22,12 +24,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class IssueAttachmentServiceImpl
-        implements IssueAttachmentService {
+public class IssueAttachmentServiceImpl implements IssueAttachmentService {
 
     private final IssueRepository issueRepository;
     private final IssueAttachmentRepository attachmentRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+    private final NotificationInboxService notificationInboxService;
 
     private final Path root = Paths.get("uploads/issues");
 
@@ -38,7 +41,6 @@ public class IssueAttachmentServiceImpl
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
-
 
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
@@ -57,9 +59,23 @@ public class IssueAttachmentServiceImpl
             attachment.setFilePath(filePath.toString());
             attachment.setUploadedBy(user);
 
-            attachmentRepository.save(attachment);
+            IssueAttachment savedAttachment = attachmentRepository.save(attachment);
 
-            return map(attachment);
+            notificationInboxService.notifyForIssueEvent(
+                    "ATTACHMENT_ADDED",
+                    "New attachment added to issue: " + issue.getTitle(),
+                    issue
+            );
+
+            auditLogService.log(
+                    "ISSUE_ATTACHMENT_UPLOADED",
+                    "ISSUE",
+                    issue.getId(),
+                    "Attachment '" + savedAttachment.getFileName()
+                            + "' uploaded by " + user.getFullName()
+            );
+
+            return map(savedAttachment);
 
         } catch (Exception e) {
             throw new RuntimeException("File upload failed");

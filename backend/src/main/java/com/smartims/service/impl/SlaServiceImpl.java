@@ -51,9 +51,21 @@ public class SlaServiceImpl implements SlaService {
                 .project(project)
                 .build();
 
-        return SlaMapper.toResponse(
-                slaPolicyRepository.save(slaPolicy)
+        SlaPolicy savedPolicy = slaPolicyRepository.save(slaPolicy);
+
+        auditLogService.log(
+                "SLA_CREATED",
+                "PROJECT",
+                project.getId(),
+                "SLA policy created for priority "
+                        + savedPolicy.getPriorityLevel()
+                        + " with resolution time "
+                        + savedPolicy.getResolutionTimeMinutes()
+                        + " minutes"
         );
+
+        return SlaMapper.toResponse(savedPolicy);
+
     }
 
 
@@ -103,9 +115,6 @@ public class SlaServiceImpl implements SlaService {
                                 issue.getId(),
                                 "ISSUE"
                         );
-
-
-
 
                         auditLogService.log(
                                 "SLA_BREACHED",
@@ -168,6 +177,14 @@ public class SlaServiceImpl implements SlaService {
 
         issue.setEscalated(true);
         issueRepository.save(issue);
+
+        auditLogService.logSystem(
+                "ISSUE_ESCALATION_TRIGGERED",
+                "Automatic escalation triggered due to SLA status: " + slaStatus,
+                issue.getId(),
+                "ISSUE"
+        );
+
 
         notificationInboxService.notifyForIssueEvent(
                 "ISSUE_ESCALATED",

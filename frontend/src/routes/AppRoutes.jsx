@@ -1,28 +1,60 @@
 import { Routes, Route } from "react-router-dom";
+
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Index from "../pages/public/Index";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 
+import Unauthorized from "../pages/errors/Unauthorized";
+import NotFound from "../pages/errors/NotFound";
+import Maintenance from "../pages/errors/Maintenance";
+
+import PublicRoute from "./PublicRoute";
+import ProtectedRoute from "./ProtectedRoute";
+
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import EngineerDashboard from "../pages/engineer/EngineerDashboard";
-import UserDashboard from "../pages/user/UserDashboard";``
-
-import ProtectedRoute from "./ProtectedRoute";
+import UserDashboard from "../pages/user/UserDashboard";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      {/* Admin only */}
+      <Route path="/" element={
+          <PublicRoute>
+            <Index />
+          </PublicRoute>
+        }
+      />
+
+      <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+
+      <Route path="/authentication/register" element={
+          <PublicRoute>
+            <Register />
+          </PublicRoute>
+        }
+      />
+
+      <Route path="/forgot-password" element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        }
+      />
+
+      <Route path="/unauthorized" element={<Unauthorized />} />
+      <Route path="/maintenance" element={<Maintenance />} />
+
+      {/* Admin */}
       <Route
-        path="/admin"
+        path="/admin/dashboard"
         element={
           <ProtectedRoute allowedRoles={["ADMIN"]}>
             <AdminDashboard />
@@ -30,9 +62,9 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Manager only */}
+      {/* Manager */}
       <Route
-        path="/manager"
+        path="/manager/dashboard"
         element={
           <ProtectedRoute allowedRoles={["MANAGER"]}>
             <ManagerDashboard />
@@ -40,9 +72,9 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Engineer only */}
+      {/* Engineer */}
       <Route
-        path="/engineer"
+        path="/engineer/dashboard"
         element={
           <ProtectedRoute allowedRoles={["ENGINEER"]}>
             <EngineerDashboard />
@@ -50,15 +82,18 @@ export default function AppRoutes() {
         }
       />
 
-      {/* User only */}
+      {/* User */}
       <Route
-        path="/user"
+        path="/user/dashboard"
         element={
           <ProtectedRoute allowedRoles={["USER"]}>
             <UserDashboard />
           </ProtectedRoute>
         }
       />
+
+      {/* ================= FALLBACK ================= */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

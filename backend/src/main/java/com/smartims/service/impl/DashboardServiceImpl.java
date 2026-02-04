@@ -79,7 +79,6 @@ public class DashboardServiceImpl implements DashboardService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        // Authorization
         if (!currentUser.getRole().name().equals("ADMIN")
                 && !project.getManager().equals(currentUser)
                 && !project.getMembers().contains(currentUser)) {
@@ -96,5 +95,4 @@ public class DashboardServiceImpl implements DashboardService {
 
         return response;
     }
-
 }

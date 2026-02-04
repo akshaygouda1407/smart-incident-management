@@ -35,13 +35,12 @@ public class IssueServiceImpl implements IssueService {
     private final UserRepository userRepository;
     private final NotificationInboxService notificationInboxService;
     private final AuditLogService auditLogService;
-//    private final SlaPolicy slaPolicy;
     private final SlaPolicyRepository slaPolicyRepository;
     private final IssueActivityService issueActivityService;
 
     @Override
     public long countByStatus(IssueStatus status) {
-        return 0;
+        return issueRepository.countByStatus(status);
     }
 
     @Override
@@ -53,14 +52,12 @@ public class IssueServiceImpl implements IssueService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        //Access check
         if (!currentUser.getRole().name().equals("ADMIN")
                 && !project.getManager().equals(currentUser)
                 && !project.getMembers().contains(currentUser)) {
             throw new RuntimeException("You are not allowed to create issue for this project");
         }
 
-        //BUSINESS RULE
         String severity;
         String priorityLevel;
 
@@ -68,8 +65,8 @@ public class IssueServiceImpl implements IssueService {
             severity = String.valueOf(request.getSeverity());
             priorityLevel = request.getPriorityLevel();
         } else {
-            severity = "MEDIUM";        // default severity
-            priorityLevel = "P3";       // default priority
+            severity = "MEDIUM";
+            priorityLevel = "P3";
         }
 
         Issue issue = Issue.builder()
@@ -84,36 +81,30 @@ public class IssueServiceImpl implements IssueService {
                 .slaBreached(false)
                 .build();
 
-//        SlaPolicy slaPolicy = slaPolicyRepository
-//                .findByPriorityLevel(issue.getPriorityLevel())
-//                .orElseThrow(() -> new RuntimeException("SLA policy not found"));
-
         issue.setSlaStartTime(LocalDateTime.now());
         issue.setSlaDueTime(LocalDateTime.now().plusMinutes(60));
 
-
-        issueRepository.save(issue);
+        Issue savedIssue = issueRepository.save(issue);
 
         notificationInboxService.notifyForIssueEvent(
                 "ISSUE_CREATED",
-                "New issue created: " + issue.getTitle(),
-                issue
+                "New issue created: " + savedIssue.getTitle(),
+                savedIssue
         );
 
         issueActivityService.logActivity(
-                issue,
+                savedIssue,
                 "CREATED",
                 "Issue created"
         );
 
         auditLogService.log(
-                "CREATE_ISSUE",
+                "ISSUE_CREATED",
                 "ISSUE",
-                issue.getId(),
+                savedIssue.getId(),
                 "Issue created for project " + project.getName()
         );
     }
-
 
     @Override
     public List<Issue> getIssuesByProject(Long projectId) {
@@ -125,101 +116,76 @@ public class IssueServiceImpl implements IssueService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        if (currentUser.getRole().name().equals("ADMIN")) {
-            return issueRepository.findByProject(project);
-        }
+        if (currentUser.getRole().name().equals("ADMIN")
+                || (currentUser.getRole().name().equals("MANAGER")
+                && project.getManager().equals(currentUser))
+                || project.getMembers().contains(currentUser)) {
 
-        if (currentUser.getRole().name().equals("MANAGER")
-                && project.getManager().equals(currentUser)) {
-            return issueRepository.findByProject(project);
-        }
+            if (currentUser.getRole().name().equals("ENGINEER")) {
+                return issueRepository.findByProjectAndAssignedEngineer(project, currentUser);
+            }
 
-        if (currentUser.getRole().name().equals("ENGINEER")) {
-            return issueRepository.findByProjectAndAssignedEngineer(project, currentUser);
-        }
-
-        if (project.getMembers().contains(currentUser)) {
             return issueRepository.findByProject(project);
         }
 
         throw new RuntimeException("Access denied for this project");
     }
 
-
     @Override
-    public void updateIssueStatus(
-            Long issueId,
-            IssueStatus newStatus,
-            String role
-    ) {
+    public void updateIssueStatus(Long issueId, IssueStatus newStatus, String role) {
+
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new ResourceNotFoundException("Issue not found"));
 
-        IssueStatus currentStatus = issue.getStatus();
+        IssueStatus oldStatus = issue.getStatus();
 
         switch (role) {
             case "ROLE_ENGINEER" -> {
-                if (currentStatus == IssueStatus.OPEN &&
-                        newStatus == IssueStatus.IN_PROGRESS ||
-                        currentStatus == IssueStatus.IN_PROGRESS &&
-                                newStatus == IssueStatus.RESOLVED) {
-
+                if ((oldStatus == IssueStatus.OPEN && newStatus == IssueStatus.IN_PROGRESS)
+                        || (oldStatus == IssueStatus.IN_PROGRESS && newStatus == IssueStatus.RESOLVED)) {
                     issue.setStatus(newStatus);
                 } else {
                     throw new UnauthorizedException("Invalid status transition for ENGINEER");
                 }
             }
-
             case "ROLE_MANAGER" -> {
-                if (currentStatus == IssueStatus.RESOLVED &&
-                        newStatus == IssueStatus.CLOSED) {
-
+                if (oldStatus == IssueStatus.RESOLVED && newStatus == IssueStatus.CLOSED) {
                     issue.setStatus(newStatus);
                 } else {
                     throw new UnauthorizedException("MANAGER can only close issues");
                 }
             }
-
-            case "ROLE_ADMIN" -> {
-                issue.setStatus(newStatus);
-            }
-
+            case "ROLE_ADMIN" -> issue.setStatus(newStatus);
             default -> throw new UnauthorizedException("Role not allowed to update issue status");
         }
 
+        issueRepository.save(issue);
+
         issueActivityService.logActivity(
                 issue,
-                "STATUS_CHANGE",
-                "Status changed to " + currentStatus
+                "STATUS_UPDATED",
+                "Status changed from " + oldStatus + " to " + newStatus
         );
-
-        issueRepository.save(issue);
 
         notificationInboxService.notifyForIssueEvent(
                 "ISSUE_STATUS_UPDATED",
-                "Issue '" + issue.getTitle() + "' status changed to " + newStatus,
+                "Issue '" + issue.getTitle() + "' status changed from "
+                        + oldStatus + " to " + newStatus,
                 issue
         );
 
-
-
-
         auditLogService.log(
-                "UPDATE_ISSUE_STATUS",
+                "ISSUE_STATUS_UPDATED",
                 "ISSUE",
                 issue.getId(),
-                "Status updated to " + newStatus
+                "Status updated from " + oldStatus + " to " + newStatus
         );
-
     }
 
     @Override
     public IssueResponse getIssueById(Long id) {
         Issue issue = issueRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Issue not found with id: " + id)
-                );
-
+                .orElseThrow(() -> new RuntimeException("Issue not found with id: " + id));
         return IssueMapper.toResponse(issue);
     }
 
@@ -240,12 +206,10 @@ public class IssueServiceImpl implements IssueService {
         User engineer = userRepository.findById(engineerId)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
 
-        // Role check
         if (!engineer.getRole().name().equals("ENGINEER")) {
             throw new RuntimeException("User is not an engineer");
         }
 
-        // Project membership check
         if (!issue.getProject().getMembers().contains(engineer)) {
             throw new RuntimeException("Engineer is not part of this project");
         }
@@ -266,7 +230,7 @@ public class IssueServiceImpl implements IssueService {
         );
 
         auditLogService.log(
-                "ASSIGN_ENGINEER",
+                "ENGINEER_ASSIGNED",
                 "ISSUE",
                 issue.getId(),
                 "Assigned to engineer " + engineer.getEmail()
@@ -278,41 +242,40 @@ public class IssueServiceImpl implements IssueService {
     public IssueResponse assignIssue(Long issueId, Long engineerId) {
 
         Issue issue = issueRepository.findById(issueId)
-                .orElseThrow(() ->
-                        new RuntimeException("Issue not found with id: " + issueId)
-                );
+                .orElseThrow(() -> new RuntimeException("Issue not found"));
 
         User engineer = userRepository.findById(engineerId)
-                .orElseThrow(() ->
-                        new RuntimeException("Engineer not found with id: " + engineerId)
-                );
+                .orElseThrow(() -> new RuntimeException("Engineer not found"));
 
         issue.setAssignedEngineer(engineer);
 
-        return IssueMapper.toResponse(issueRepository.save(issue));
+        Issue saved = issueRepository.save(issue);
+
+        auditLogService.log(
+                "ENGINEER_ASSIGNED",
+                "ISSUE",
+                saved.getId(),
+                "Assigned to engineer " + engineer.getEmail()
+        );
+
+        return IssueMapper.toResponse(saved);
     }
 
     @Override
     public List<IssueResponse> getIssuesByEngineer(Long engineerId) {
-
         return issueRepository.findByAssignedEngineerId(engineerId)
                 .stream()
                 .map(IssueMapper::toResponse)
                 .toList();
     }
 
-
-    private void recordSlaBreachIfNeeded(
-            Issue issue,
-            LocalDateTime dueTime,
-            LocalDateTime breachedAt) {
+    private void recordSlaBreachIfNeeded(Issue issue, LocalDateTime dueTime, LocalDateTime breachedAt) {
 
         if (slaBreachRepository.existsByIssue(issue)) {
-            return; // already recorded
+            return;
         }
 
-        long delayMinutes =
-                Duration.between(dueTime, breachedAt).toMinutes();
+        long delayMinutes = Duration.between(dueTime, breachedAt).toMinutes();
 
         SlaBreach breach = new SlaBreach();
         breach.setIssue(issue);
@@ -324,9 +287,14 @@ public class IssueServiceImpl implements IssueService {
 
         issue.setSlaBreached(true);
         issueRepository.save(issue);
+
+        auditLogService.logSystem(
+                "SLA_BREACH_RECORDED",
+                "SLA breach recorded with delay " + delayMinutes + " minutes",
+                issue.getId(),
+                "ISSUE"
+        );
     }
-
-
 
     @Override
     public void autoAssignEngineer(Long issueId) {
@@ -336,23 +304,20 @@ public class IssueServiceImpl implements IssueService {
 
         Project project = issue.getProject();
 
-        // Get engineers in this project
         List<User> engineers = project.getMembers()
                 .stream()
-                .filter(user -> user.getRole().name().equals("ENGINEER"))
+                .filter(u -> u.getRole().name().equals("ENGINEER"))
                 .toList();
 
         if (engineers.isEmpty()) {
             throw new RuntimeException("No engineers available in project");
         }
 
-        // Select engineer with least OPEN issues
         User selectedEngineer = engineers.stream()
                 .min(Comparator.comparingLong(
-                        engineer ->
-                                issueRepository.countByAssignedEngineerAndStatus(
-                                        engineer, IssueStatus.OPEN
-                                )
+                        engineer -> issueRepository.countByAssignedEngineerAndStatus(
+                                engineer, IssueStatus.OPEN
+                        )
                 ))
                 .orElseThrow();
 
@@ -372,14 +337,13 @@ public class IssueServiceImpl implements IssueService {
                 "Auto-assigned to " + selectedEngineer.getFullName()
         );
 
-        auditLogService.log(
-                "AUTO_ASSIGN_ENGINEER",
-                "ISSUE",
+        auditLogService.logSystem(
+                "ISSUE_AUTO_ASSIGNED",
+                "Auto-assigned to engineer " + selectedEngineer.getEmail(),
                 issue.getId(),
-                "Auto-assigned to engineer " + selectedEngineer.getEmail()
+                "ISSUE"
         );
     }
-
 
     @Override
     public SlaStatusResponse getSlaStatus(Long issueId) {
@@ -403,7 +367,6 @@ public class IssueServiceImpl implements IssueService {
         if (now.isAfter(due)) {
             status = "BREACHED";
             remainingMinutes = 0;
-
             recordSlaBreachIfNeeded(issue, due, now);
         } else if (remainingMinutes <= totalMinutes * 0.2) {
             status = "AT_RISK";
@@ -439,6 +402,4 @@ public class IssueServiceImpl implements IssueService {
                 )
                 .build();
     }
-
-
 }

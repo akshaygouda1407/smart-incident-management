@@ -1,6 +1,7 @@
 package com.smartims.service.impl;
 
 import com.smartims.enums.OtpPurpose;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
+    private final AuditLogService auditLogService;
 
     @Override
     public void sendOtpEmail(String email, String otp, OtpPurpose purpose) {
+
         String subject = purpose == OtpPurpose.REGISTER
                 ? "Verify Your ServicePlus Account"
                 : "Reset Your ServicePlus Password";
@@ -31,10 +34,18 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(otp);
 
         sendMail(email, subject, body);
+
+        auditLogService.logSystem(
+                "OTP_EMAIL_SENT",
+                "OTP email sent for purpose: " + purpose,
+                null,
+                "EMAIL"
+        );
     }
 
     @Override
     public void sendContactAcknowledgement(String email, String name) {
+
         String subject = "We Received Your Message – ServicePlus";
 
         String body = """
@@ -48,13 +59,22 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(name);
 
         sendMail(email, subject, body);
+
+        auditLogService.logSystem(
+                "CONTACT_ACK_EMAIL_SENT",
+                "Contact acknowledgement email sent to " + email,
+                null,
+                "EMAIL"
+        );
     }
 
     private void sendMail(String to, String subject, String body) {
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
         message.setSubject(subject);
         message.setText(body);
+
         mailSender.send(message);
     }
 }

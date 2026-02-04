@@ -5,56 +5,82 @@ import { showError, showSuccess } from "../../utils/toast";
 import AuthCard from "../../components/auth/AuthCard";
 import VerifyOtpModal from "../../components/auth/VerifyOtpModal";
 import ResetPasswordModal from "../../components/auth/ResetPasswordModal";
+import LoadingButton from "../../components/common/LoadingButton";
+import bgImage from "../../assets/background.png";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [showReset, setShowReset] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+
+    setLoading(true);
+
     try {
       await requestForgotOtp(email);
       showSuccess("OTP sent to your email");
       setShowOtp(true);
     } catch (err) {
-      showError(err?.response?.data?.message || "Failed to send OTP");
+      showError(
+        err?.response?.data?.message || "Failed to send OTP"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      {/* FORGOT PASSWORD CARD */}
-      <AuthCard
-        title="Forgot your password?"
-        subtitle="Enter your registered email to reset your password"
-        footer={
-          <Link to="/login" className="text-blue-600 font-medium">
-            Back to Login
-          </Link>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="email"
-            placeholder="Registered email address"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm
-                       focus:ring-2 focus:ring-blue-500 outline-none"
-          />
+    <div
+      className="relative min-h-screen w-full bg-cover bg-center flex items-center justify-center px-4"
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
+      <div className="absolute inset-0 bg-white/20" />
 
-          <button
-            className="w-full bg-blue-600 text-white py-2 rounded-lg
-                       text-sm font-medium hover:bg-blue-700 transition"
-          >
-            Send OTP
-          </button>
-        </form>
-      </AuthCard>
+      {/* Forgot Password Card */}
+      <div className="relative z-10">
+        <AuthCard
+          title="Forgot your password?"
+          subtitle="Enter your registered email to reset your password"
+          footer={
+            <Link to="/login" className="text-blue-600 font-medium">
+              Back to Login
+            </Link>
+          }
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Registered email address"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="
+                w-full
+                rounded-xl
+                border border-gray-300
+                bg-white/40
+                backdrop-blur
+                px-4 py-2.5
+                text-sm
+                outline-none
+                focus:ring-2 focus:ring-blue-500
+              "
+            />
 
-      {/* OTP MODAL */}
+            <LoadingButton
+              loading={loading}
+              text="Send OTP"
+              loadingText="Sending OTP..."
+            />
+          </form>
+        </AuthCard>
+      </div>
+
+      {/* OTP Modal */}
       {showOtp && (
         <VerifyOtpModal
           email={email}
@@ -66,13 +92,13 @@ export default function ForgotPassword() {
         />
       )}
 
-      {/* RESET PASSWORD MODAL */}
+      {/* Reset Password Modal */}
       {showReset && (
         <ResetPasswordModal
           email={email}
           onClose={() => setShowReset(false)}
         />
       )}
-    </>
+    </div>
   );
 }

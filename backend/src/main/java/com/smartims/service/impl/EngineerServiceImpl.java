@@ -6,7 +6,9 @@ import com.smartims.entity.User;
 import com.smartims.enums.IssueStatus;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.EngineerService;
+import com.smartims.service.NotificationInboxService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,8 @@ public class EngineerServiceImpl implements EngineerService {
 
     private final IssueRepository issueRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
+    private final NotificationInboxService notificationInboxService;
 
     @Override
     public EngineerDashboardResponse getDashboard(String engineerEmail) {
@@ -45,6 +49,7 @@ public class EngineerServiceImpl implements EngineerService {
 
     @Override
     public List<Issue> getMyIssues(String engineerEmail) {
+
         User engineer = userRepository.findByEmail(engineerEmail)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
 
@@ -62,13 +67,32 @@ public class EngineerServiceImpl implements EngineerService {
             throw new RuntimeException("Not authorized to update this issue");
         }
 
-        // Simple workflow
+        IssueStatus oldStatus = issue.getStatus();
+
         if (issue.getStatus() == IssueStatus.OPEN) {
             issue.setStatus(IssueStatus.IN_PROGRESS);
         } else if (issue.getStatus() == IssueStatus.IN_PROGRESS) {
             issue.setStatus(IssueStatus.CLOSED);
         }
 
+        IssueStatus newStatus = issue.getStatus();
+
         issueRepository.save(issue);
+
+        notificationInboxService.notifyForIssueEvent(
+                "ISSUE_STATUS_UPDATED",
+                "Issue '" + issue.getTitle()
+                        + "' status changed from "
+                        + oldStatus + " to " + newStatus,
+                issue
+        );
+
+        auditLogService.log(
+                "ISSUE_STATUS_UPDATED",
+                "ISSUE",
+                issue.getId(),
+                "Engineer updated issue status from "
+                        + oldStatus + " to " + newStatus
+        );
     }
 }

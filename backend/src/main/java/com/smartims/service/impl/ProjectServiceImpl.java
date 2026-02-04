@@ -29,56 +29,18 @@ public class ProjectServiceImpl implements ProjectService {
     private final AuditLogService auditLogService;
     private final NotificationInboxService notificationInboxService;
 
-    // 1️⃣ CREATE PROJECT
-//    @Override
-//    public ProjectResponse createProject(CreateProjectRequest request) {
-//
-//        User manager = userRepository.findById(request.getManagerId())
-//                .orElseThrow(() -> new RuntimeException("Manager not found"));
-//
-//        List<User> members = userRepository.findAllById(request.getMemberIds());
-//
-//        Project project = Project.builder()
-//                .name(request.getName())
-//                .description(request.getDescription())
-//                .manager(manager)
-//                .members(members)
-//                .build();
-//
-//        projectRepository.save(project);
-//
-//        // Notification
-//        notificationInboxService.notifyForProjectEvent(
-//                "PROJECT_MEMBER_ADDED",
-//                "User added to project " + project.getName(),
-//                project
-//        );
-//
-//        //Audit log
-//        auditLogService.log(
-//                "CREATE_PROJECT",
-//                "PROJECT",
-//                project.getId(),
-//                "Project created with manager " + project.getManager().getEmail()
-//        );
-//
-//        return mapToResponse(project);
-//    }
-
     @Override
     public ProjectResponse createProject(CreateProjectRequest request) {
-        // ✅ VALIDATE managerId
+
         if (request.getManagerId() == null) {
             throw new IllegalArgumentException("Manager ID must not be null");
         }
 
-        // ✅ FETCH manager properly
         User manager = userRepository.findById(request.getManagerId())
                 .orElseThrow(() ->
                         new RuntimeException("Manager not found with id: " + request.getManagerId())
                 );
 
-        // ✅ FETCH members safely
         List<User> members = new ArrayList<>();
         if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
             members = userRepository.findAllById(request.getMemberIds());
@@ -94,23 +56,20 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-        //Notification
         notificationInboxService.notifyForProjectEvent(
-                "PROJECT_MEMBER_ADDED",
-                "User added to project " + project.getName(),
-                project
+                "PROJECT_CREATED",
+                "Project created: " + savedProject.getName(),
+                savedProject
         );
 
-        //Audit log
         auditLogService.log(
-                "CREATE_PROJECT",
+                "PROJECT_CREATED",
                 "PROJECT",
-                project.getId(),
-                "Project created with manager " + project.getManager().getEmail()
+                savedProject.getId(),
+                "Project created with manager " + manager.getEmail()
         );
 
-
-        return mapToResponse(project);
+        return mapToResponse(savedProject);
     }
 
     @Override
@@ -160,11 +119,15 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        if (request.getName() != null)
-            project.setName(request.getName());
+        String oldName = project.getName();
 
-        if (request.getDescription() != null)
+        if (request.getName() != null) {
+            project.setName(request.getName());
+        }
+
+        if (request.getDescription() != null) {
             project.setDescription(request.getDescription());
+        }
 
         if (request.getManagerId() != null) {
             User manager = userRepository.findById(request.getManagerId())
@@ -181,18 +144,32 @@ public class ProjectServiceImpl implements ProjectService {
             project.setMembers(members);
         }
 
-        projectRepository.save(project);
-        return mapToResponse(project);
+        Project updatedProject = projectRepository.save(project);
+
+        auditLogService.log(
+                "PROJECT_UPDATED",
+                "PROJECT",
+                updatedProject.getId(),
+                "Project updated (old name: " + oldName + ", new name: " + updatedProject.getName() + ")"
+        );
+
+        return mapToResponse(updatedProject);
     }
 
     @Override
     public void deleteProject(Long id) {
 
-        if (!projectRepository.existsById(id)) {
-            throw new RuntimeException("Project not found");
-        }
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Project not found"));
 
-        projectRepository.deleteById(id);
+        projectRepository.delete(project);
+
+        auditLogService.log(
+                "PROJECT_DELETED",
+                "PROJECT",
+                id,
+                "Project deleted: " + project.getName()
+        );
     }
 
     private ProjectResponse mapToResponse(Project project) {

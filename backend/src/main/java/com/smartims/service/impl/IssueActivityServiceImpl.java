@@ -7,6 +7,7 @@ import com.smartims.entity.User;
 import com.smartims.repository.IssueActivityRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueActivityService;
 import com.smartims.util.AuthUtil;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class IssueActivityServiceImpl implements IssueActivityService {
     private final IssueActivityRepository issueActivityRepository;
     private final UserRepository userRepository;
     private final IssueRepository issueRepository;
+    private final AuditLogService auditLogService;
 
     @Override
     public void logActivity(Issue issue, String action, String description) {
@@ -36,7 +38,14 @@ public class IssueActivityServiceImpl implements IssueActivityService {
         activity.setDescription(description);
         activity.setPerformedBy(user);
 
-        issueActivityRepository.save(activity);
+        IssueActivity savedActivity = issueActivityRepository.save(activity);
+
+        auditLogService.log(
+                "ISSUE_ACTIVITY_LOGGED",
+                "ISSUE",
+                issue.getId(),
+                "Activity logged: " + action + " by " + user.getFullName()
+        );
     }
 
     @Override

@@ -2,12 +2,11 @@ package com.smartims.service.impl;
 
 import com.smartims.dto.*;
 import com.smartims.entity.User;
-import com.smartims.enums.OtpPurpose;
 import com.smartims.enums.Role;
 import com.smartims.exception.AuthException;
 import com.smartims.repository.UserRepository;
+import com.smartims.security.JwtService;
 import com.smartims.service.AuditLogService;
-import com.smartims.service.OtpService;
 import com.smartims.service.PendingRegisterStore;
 import com.smartims.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import com.smartims.security.JwtService;
 
 import java.util.List;
-
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +26,6 @@ public class UserServiceImpl implements UserService {
     private final JwtService jwtService;
     private final PendingRegisterStore pendingRegisterStore;
     private final AuditLogService auditLogService;
-
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -47,9 +43,15 @@ public class UserServiceImpl implements UserService {
 
         String token = jwtService.generateToken(user);
 
+        auditLogService.logSystem(
+                "USER_LOGIN_SUCCESS",
+                "User logged in successfully",
+                user.getId(),
+                "USER"
+        );
+
         return new LoginResponse(token, user.getRole());
     }
-
 
     @Override
     public void register(RegisterRequest request) {
@@ -65,8 +67,14 @@ public class UserServiceImpl implements UserService {
         pending.setRole(Role.ADMIN);
 
         pendingRegisterStore.save(request.getEmail(), pending);
-    }
 
+        auditLogService.logSystem(
+                "USER_REGISTRATION_INITIATED",
+                "User registration initiated for email " + request.getEmail(),
+                null,
+                "USER"
+        );
+    }
 
     @Override
     public void createUserFromPending(PendingRegisterUser pending) {
@@ -80,11 +88,19 @@ public class UserServiceImpl implements UserService {
         user.setVerified(true);
         user.setLocked(false);
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        auditLogService.log(
+                "USER_CREATED",
+                "USER",
+                savedUser.getId(),
+                "User account created from pending registration"
+        );
     }
 
     @Override
     public void enableUser(String email) {
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -92,6 +108,13 @@ public class UserServiceImpl implements UserService {
         user.setVerified(true);
 
         userRepository.save(user);
+
+        auditLogService.log(
+                "USER_ENABLED",
+                "USER",
+                user.getId(),
+                "User account enabled"
+        );
     }
 
     @Override
@@ -108,7 +131,16 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setTokenVersion(user.getTokenVersion() + 1);
+
         userRepository.save(user);
+
+        auditLogService.logSystem(
+                "PASSWORD_RESET",
+                "Password reset completed",
+                user.getId(),
+                "USER"
+        );
     }
 
     @Override
@@ -127,8 +159,16 @@ public class UserServiceImpl implements UserService {
                 .locked(false)
                 .build();
 
-        userRepository.save(user);
-        return mapToResponse(user);
+        User savedUser = userRepository.save(user);
+
+        auditLogService.log(
+                "USER_CREATED_BY_ADMIN",
+                "USER",
+                savedUser.getId(),
+                "User created by admin with role " + savedUser.getRole()
+        );
+
+        return mapToResponse(savedUser);
     }
 
     @Override
@@ -141,8 +181,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(Long id) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         return mapToResponse(user);
     }
 
@@ -164,27 +206,32 @@ public class UserServiceImpl implements UserService {
         if (request.getLocked() != null)
             user.setLocked(request.getLocked());
 
-        userRepository.save(user);
-        return mapToResponse(user);
+        User updatedUser = userRepository.save(user);
+
+        auditLogService.log(
+                "USER_UPDATED",
+                "USER",
+                updatedUser.getId(),
+                "User details updated"
+        );
+
+        return mapToResponse(updatedUser);
     }
 
     @Override
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found");
-        }
-        userRepository.deleteById(id);
-    }
 
-    private UserResponse mapToResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .enabled(user.getEnabled())
-                .locked(user.getLocked())
-                .build();
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        userRepository.delete(user);
+
+        auditLogService.log(
+                "USER_DELETED",
+                "USER",
+                id,
+                "User account deleted: " + user.getEmail()
+        );
     }
 
     @Override
@@ -230,22 +277,17 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Verify old password
         if (!passwordEncoder.matches(
                 request.getCurrentPassword(),
                 user.getPassword())) {
             throw new RuntimeException("Current password is incorrect");
         }
 
-        //Encode & update new password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-
-        //Invalidate existing tokens (VERY IMPORTANT)
         user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
 
-        //Audit log
         auditLogService.log(
                 "CHANGE_PASSWORD",
                 "USER",
@@ -254,4 +296,14 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    private UserResponse mapToResponse(User user) {
+        return UserResponse.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .enabled(user.getEnabled())
+                .locked(user.getLocked())
+                .build();
+    }
 }

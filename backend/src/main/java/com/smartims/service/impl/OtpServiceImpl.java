@@ -2,10 +2,11 @@ package com.smartims.service.impl;
 
 import com.smartims.entity.OtpVerification;
 import com.smartims.enums.OtpPurpose;
-import com.smartims.service.OtpException;
-import com.smartims.repository.OtpVerificationRepository;
+import com.smartims.service.AuditLogService;
 import com.smartims.service.EmailService;
+import com.smartims.service.OtpException;
 import com.smartims.service.OtpService;
+import com.smartims.repository.OtpVerificationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ public class OtpServiceImpl implements OtpService {
 
     private final OtpVerificationRepository otpRepo;
     private final EmailService emailService;
+    private final AuditLogService auditLogService;
 
     @Override
     public void generateAndSendOtp(String email, OtpPurpose purpose) {
@@ -42,7 +44,15 @@ public class OtpServiceImpl implements OtpService {
         entity.setExpiryTime(LocalDateTime.now().plusMinutes(3));
 
         otpRepo.save(entity);
+
         emailService.sendOtpEmail(email, otp, purpose);
+
+        auditLogService.logSystem(
+                "OTP_GENERATED",
+                "OTP generated and sent for purpose: " + purpose,
+                null,
+                "OTP"
+        );
     }
 
     @Override
@@ -66,8 +76,14 @@ public class OtpServiceImpl implements OtpService {
 
         record.setVerified(true);
         otpRepo.save(record);
-    }
 
+        auditLogService.logSystem(
+                "OTP_VERIFIED",
+                "OTP verified successfully for purpose: " + purpose,
+                null,
+                "OTP"
+        );
+    }
 
     @Override
     public boolean isOtpVerified(String email, OtpPurpose purpose) {
@@ -75,5 +91,4 @@ public class OtpServiceImpl implements OtpService {
                 .findTopByEmailAndPurposeAndVerifiedTrueOrderByCreatedAtDesc(email, purpose)
                 .isPresent();
     }
-
 }

@@ -5,6 +5,20 @@ spring:
   application:
     name: smart-incident-management
 
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,metrics,prometheus
+    endpoint:
+      health:
+        show-details: always
+
+  logging:
+    level:
+      root: INFO
+      com.smartims: DEBUG
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
