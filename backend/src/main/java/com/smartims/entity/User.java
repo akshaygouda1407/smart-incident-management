@@ -33,18 +33,21 @@ public class User {
     private Role role;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean enabled = false;
 
     @Column(nullable = false)
     private boolean verified = false;
 
     @Column(nullable = false)
+    @Builder.Default
     private boolean locked = false;//if user is deleted then only it should be true(softDelete)
 
     @Column(name = "token_version", nullable = false)
     private Integer tokenVersion = 0;
 
     @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
     private boolean mustChangePassword = false;
 
     public void incrementTokenVersion() {

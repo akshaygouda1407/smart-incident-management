@@ -41,5 +41,10 @@ public class Project {
 
     private List<User> members = new ArrayList<>();
 
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private boolean active = true;
+
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
 }

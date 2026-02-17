@@ -13,7 +13,6 @@ export const SIDEBAR_CONFIG = {
   ADMIN: [
     { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { label: "Projects", path: "/admin/projects", icon: FolderKanban },
-    { label: "Add Member", path: "/admin/add-member", icon: Users },
     { label: "SLA Monitoring", path: "/admin/sla-monitoring", icon: ShieldCheck },
     { label: "SLA Configuration", path: "/admin/sla-config", icon: Wrench },
     { label: "User Management", path: "/admin/users", icon: Users },

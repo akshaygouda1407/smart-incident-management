@@ -11,7 +11,8 @@ import {
   Unlock,
   UserCheck,
   UserX,
-  X
+  X,
+  SquarePen
 } from "lucide-react";
 import {
   createUser,
@@ -601,13 +602,19 @@ export default function AdminUserManagement() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-sm">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-3">
+
+                      {/* Edit */}
                       <button
                         onClick={() => openEdit(u)}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                        title="Edit user"
                       >
-                        Edit
+                        <SquarePen className="h-5 w-5" />
                       </button>
+
+
+                      {/* Enable / Disable */}
                       <button
                         onClick={() =>
                           openConfirm(
@@ -629,18 +636,29 @@ export default function AdminUserManagement() {
                             }
                           )
                         }
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                        className={`rounded-lg p-2 hover:bg-opacity-50 ${
+                          u.enabled
+                            ? "text-red-600 hover:bg-red-50"
+                            : "text-green-600 hover:bg-green-50"
+                        }`}
+                        title={u.enabled ? "Disable user" : "Enable user"}
                       >
-                        {u.enabled ? "Disable" : "Enable"}
+                        {u.enabled ? (
+                          <UserX className="h-5 w-5" />
+                        ) : (
+                          <UserCheck className="h-5 w-5" />
+                        )}
                       </button>
+
+                      {/* Lock / Unlock */}
                       <button
                         onClick={() =>
                           openConfirm(
                             {
                               title: u.locked ? "Unlock user?" : "Lock user?",
                               whatHappens: u.locked
-                                ? "This will unlock the account and allow the user to log in (if the account is enabled)."
-                                : "This will lock the account and prevent the user from logging in until unlocked.",
+                                ? "This will unlock the account and allow the user to log in (if enabled)."
+                                : "This will lock the account and prevent login.",
                               confirmMessage: u.locked
                                 ? "Are you sure you want to unlock this user?"
                                 : "Are you sure you want to lock this user?",
@@ -654,10 +672,21 @@ export default function AdminUserManagement() {
                             }
                           )
                         }
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                        className={`rounded-lg p-2 ${
+                          u.locked
+                            ? "text-green-600 hover:bg-green-50"
+                            : "text-yellow-600 hover:bg-yellow-50"
+                        }`}
+                        title={u.locked ? "Unlock user" : "Lock user"}
                       >
-                        {u.locked ? "Unlock" : "Lock"}
+                        {u.locked ? (
+                          <Unlock className="h-5 w-5" />
+                        ) : (
+                          <Lock className="h-5 w-5" />
+                        )}
                       </button>
+
+                      {/* Delete */}
                       <button
                         onClick={() =>
                           openConfirm(
@@ -676,11 +705,14 @@ export default function AdminUserManagement() {
                             }
                           )
                         }
-                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100"
+                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                        title="Delete user"
                       >
-                        Delete
+                        <Trash2 className="h-5 w-5" />
                       </button>
+
                     </div>
+
                   </td>
                 </tr>
               ))

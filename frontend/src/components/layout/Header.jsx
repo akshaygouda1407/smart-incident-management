@@ -42,12 +42,12 @@ const Header = () => {
       <div className="flex h-16 items-center justify-between px-6">
       {/* LEFT */}
       <div className="flex items-center gap-3">
-        <div className="text-base font-semibold text-gray-800">
+        {/* <div className="text-base font-semibold text-gray-800">
           Dashboard
-        </div>
+        </div> */}
         <div className="hidden h-5 w-px bg-gray-200 sm:block" />
         <div className="hidden text-sm text-gray-500 sm:block">
-          Welcome back
+          Welcome, {displayName}
         </div>
       </div>
 
