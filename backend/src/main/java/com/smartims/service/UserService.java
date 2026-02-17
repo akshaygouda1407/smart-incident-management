@@ -33,7 +33,7 @@ public interface UserService {
 
     void updateUserLockStatus(Long userId, boolean locked);
 
-    void changePassword(ChangePasswordRequest request);
+    LoginResponse changePassword(ChangePasswordRequest request);
 
 
 }

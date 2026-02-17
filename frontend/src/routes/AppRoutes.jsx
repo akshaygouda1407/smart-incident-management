@@ -5,6 +5,7 @@ import Register from "../pages/auth/Register";
 import Index from "../pages/public/Index";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import AuthLayout from "../layouts/AuthLayout";
+import ForceChangePassword from "../pages/auth/ForceChangePassword";
 
 
 import Unauthorized from "../pages/errors/Unauthorized";
@@ -18,6 +19,8 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import EngineerDashboard from "../pages/engineer/EngineerDashboard";
 import UserDashboard from "../pages/user/UserDashboard";
+import PlaceholderPage from "../pages/common/PlaceholderPage";
+import AdminUserManagement from "../pages/admin/AdminUserManagement";
 
 export default function AppRoutes() {
   return (
@@ -66,51 +69,212 @@ export default function AppRoutes() {
         }
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/force-change-password"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN", "MANAGER", "ENGINEER", "USER"]}>
+              <ForceChangePassword />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/projects"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <PlaceholderPage title="Admin · Projects" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/add-member"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <PlaceholderPage title="Admin · Add Member" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sla-monitoring"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <PlaceholderPage title="Admin · SLA Monitoring" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sla-config"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <PlaceholderPage title="Admin · SLA Configuration" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <AdminUserManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <PlaceholderPage title="Admin · Reports" />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+        <Route
+          path="/manager/projects"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Assigned Projects" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/issues"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Issues" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/assign-issues"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Assign Issues" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/sla-monitoring"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · SLA Monitoring" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/workload"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Workload" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/team-users"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Team Users" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/reports"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <PlaceholderPage title="Manager · Reports" />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
+        <Route
+          path="/engineer/project"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · Project Details" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/issues"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · Assigned Issues" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/sla-policies"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · SLA Policies" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/workload"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · My Workload" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/issue-status"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · Issue Status" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/solved-issues"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · Solved Issues" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/reports"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <PlaceholderPage title="Engineer · Reports" />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route
+          path="/user/project"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <PlaceholderPage title="User · Project Details" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/create-issue"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <PlaceholderPage title="User · Create Issue" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/issues"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <PlaceholderPage title="User · My Issues" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/reports"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <PlaceholderPage title="User · Reports" />
+            </ProtectedRoute>
+          }
+        />
       </Route>
-      {/* Admin */}
-      {/* <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      /> */}
 
-      {/* Manager */}
-      {/* <Route
-        path="/manager/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["MANAGER"]}>
-            <ManagerDashboard />
-          </ProtectedRoute>
-        }
-      /> */}
-
-      {/* Engineer */}
-      {/* <Route
-        path="/engineer/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["ENGINEER"]}>
-            <EngineerDashboard />
-          </ProtectedRoute>
-        }
-      /> */}
-
-      {/* User */}
-      {/* <Route
-        path="/user/dashboard"
-        element={
-          <ProtectedRoute allowedRoles={["USER"]}>
-            <UserDashboard />
-          </ProtectedRoute>
-        }
-      /> */}
-
-      {/* ================= FALLBACK ================= */}
+      {/* Fallback route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

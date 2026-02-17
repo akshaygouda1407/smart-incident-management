@@ -12,7 +12,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`h-screen bg-slate-900 text-slate-100 transition-all duration-300
+      className={`sticky top-0 h-screen shrink-0 bg-slate-900 text-slate-100 transition-all duration-300
         ${collapsed ? "w-16" : "w-64"}
       `}
     >
@@ -33,7 +33,7 @@ const Sidebar = () => {
       </div>
 
       {/* MENU */}
-      <nav className="mt-4 space-y-1">
+      <nav className="mt-4 space-y-1 px-0 overflow-hidden">
         {menuItems.map((item) => {
           const Icon = item.icon;
           return (

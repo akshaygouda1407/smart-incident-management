@@ -7,9 +7,11 @@ import com.smartims.exception.AuthException;
 import com.smartims.repository.UserRepository;
 import com.smartims.security.JwtService;
 import com.smartims.service.AuditLogService;
+import com.smartims.service.EmailService;
 import com.smartims.service.PendingRegisterStore;
 import com.smartims.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +28,10 @@ public class UserServiceImpl implements UserService {
     private final JwtService jwtService;
     private final PendingRegisterStore pendingRegisterStore;
     private final AuditLogService auditLogService;
+    private final EmailService emailService;
+
+    @Value("${app.frontend.login-url:http://localhost:5173/login}")
+    private String frontendLoginUrl;
 
     @Override
     public LoginResponse login(LoginRequest request) {
@@ -50,7 +56,7 @@ public class UserServiceImpl implements UserService {
                 "USER"
         );
 
-        return new LoginResponse(token, user.getRole());
+        return new LoginResponse(token, user.getRole(), user.isMustChangePassword());
     }
 
     @Override
@@ -157,6 +163,7 @@ public class UserServiceImpl implements UserService {
                 .role(request.getRole())
                 .enabled(true)
                 .locked(false)
+                .mustChangePassword(true)
                 .build();
 
         User savedUser = userRepository.save(user);
@@ -167,6 +174,25 @@ public class UserServiceImpl implements UserService {
                 savedUser.getId(),
                 "User created by admin with role " + savedUser.getRole()
         );
+
+        // Email credentials + login link to the newly created user
+        try {
+            emailService.sendNewUserCredentialsEmail(
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    savedUser.getEmail(),
+                    request.getPassword(),
+                    frontendLoginUrl
+            );
+        } catch (Exception ex) {
+            // Do not fail user creation if email fails; just audit-log it.
+            auditLogService.logSystem(
+                    "NEW_USER_CREDENTIALS_EMAIL_FAILED",
+                    "Failed to send credentials email to " + savedUser.getEmail(),
+                    savedUser.getId(),
+                    "EMAIL"
+            );
+        }
 
         return mapToResponse(savedUser);
     }
@@ -196,6 +222,16 @@ public class UserServiceImpl implements UserService {
 
         if (request.getFullName() != null)
             user.setFullName(request.getFullName());
+
+        if (request.getEmail() != null) {
+            String nextEmail = request.getEmail().trim();
+            if (!nextEmail.equalsIgnoreCase(user.getEmail())) {
+                if (userRepository.existsByEmail(nextEmail)) {
+                    throw new RuntimeException("Email already exists");
+                }
+                user.setEmail(nextEmail);
+            }
+        }
 
         if (request.getRole() != null)
             user.setRole(request.getRole());
@@ -269,7 +305,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changePassword(ChangePasswordRequest request) {
+    public LoginResponse changePassword(ChangePasswordRequest request) {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
@@ -284,6 +320,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setMustChangePassword(false);
         user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
@@ -294,6 +331,9 @@ public class UserServiceImpl implements UserService {
                 user.getId(),
                 "User changed password"
         );
+
+        String token = jwtService.generateToken(user);
+        return new LoginResponse(token, user.getRole(), user.isMustChangePassword());
     }
 
     private UserResponse mapToResponse(User user) {

@@ -1,0 +1,862 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Eye,
+  EyeOff,
+  Lock,
+  Trash2,
+  Unlock,
+  UserCheck,
+  UserX,
+  X
+} from "lucide-react";
+import {
+  createUser,
+  deleteUser,
+  getAllUsers,
+  updateUser,
+  updateUserLockStatus,
+  updateUserStatus
+} from "../../api/userApi";
+import { showError, showSuccess } from "../../utils/toast";
+
+const ROLE_OPTIONS = [
+  { value: "ADMIN", label: "Admin" },
+  { value: "MANAGER", label: "Manager" },
+  { value: "ENGINEER", label: "Engineer" },
+  { value: "USER", label: "User" }
+];
+
+function getApiMessage(err) {
+  return (
+    err?.response?.data?.message ||
+    err?.response?.data?.statusMessage ||
+    err?.message ||
+    "Something went wrong"
+  );
+}
+
+function unwrapApiData(res) {
+  // Our axios instance returns response.data (ApiResponse<T>), but keep it defensive.
+  if (!res) return null;
+  if (Array.isArray(res)) return res;
+  if (res?.data !== undefined) return res.data;
+  return res;
+}
+
+function formatRole(role) {
+  const value = String(role || "");
+  const fromOptions = ROLE_OPTIONS.find((r) => r.value === value)?.label;
+  if (fromOptions) return fromOptions;
+  if (!value) return "-";
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(" ");
+}
+
+function generateStrongPassword(length = 12) {
+  const lower = "abcdefghijkmnopqrstuvwxyz";
+  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const digits = "23456789";
+  const symbols = "!@#$%^&*_-+";
+  const all = lower + upper + digits + symbols;
+
+  const pick = (chars) => chars[Math.floor(Math.random() * chars.length)];
+
+  // ensure at least one from each set
+  let pwd = [pick(lower), pick(upper), pick(digits), pick(symbols)];
+  for (let i = pwd.length; i < length; i++) pwd.push(pick(all));
+
+  // shuffle
+  for (let i = pwd.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+  }
+  return pwd.join("");
+}
+
+function Badge({ tone = "gray", children }) {
+  const tones = {
+    gray: "bg-gray-100 text-gray-700 border-gray-200",
+    green: "bg-green-50 text-green-700 border-green-200",
+    red: "bg-red-50 text-red-700 border-red-200",
+    yellow: "bg-yellow-50 text-yellow-800 border-yellow-200",
+    blue: "bg-blue-50 text-blue-700 border-blue-200"
+  };
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+        tones[tone] || tones.gray
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Modal({ title, open, onClose, children }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div
+        className="absolute inset-0 bg-black/40"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b px-5 py-4">
+          <h2 className="text-base font-semibold text-gray-800">
+            {title}
+          </h2>
+          <button
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  open,
+  title,
+  whatHappens,
+  user,
+  confirmMessage,
+  confirmText = "Yes",
+  tone = "danger", // danger | neutral
+  icon,
+  loading,
+  onCancel,
+  onConfirm
+}) {
+  if (!open) return null;
+
+  const isDanger = tone === "danger";
+  const Icon = icon || AlertTriangle;
+  const iconWrap = isDanger
+    ? "bg-red-50 text-red-600 border-red-100"
+    : "bg-indigo-50 text-indigo-600 border-indigo-100";
+  const confirmBtn = isDanger
+    ? "bg-red-600 hover:bg-red-700"
+    : "bg-emerald-600 hover:bg-emerald-700";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-xl">
+        <div className="px-6 pt-6 text-center">
+          <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border ${iconWrap}`}>
+            <Icon className="h-6 w-6" />
+          </div>
+          <h2 className="mt-3 text-base font-semibold text-gray-900">
+            {title}
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">{confirmMessage}</p>
+        </div>
+
+        <div className="px-6 pb-2 pt-4">
+          <div className="rounded-xl bg-gray-50 px-4 py-3 text-left">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold text-gray-900">User:</span>{" "}
+              {user?.fullName || "-"}{" "}
+              <span className="text-gray-500">({user?.email || "-"})</span>
+            </p>
+            <p className="mt-2 text-sm text-gray-700">
+              <span className="font-semibold text-gray-900">Action:</span>{" "}
+              {whatHappens}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 px-6 pb-6 pt-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={loading}
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60 ${confirmBtn}`}
+          >
+            {loading ? "Please wait..." : confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminUserManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("fullName");
+  const [sortDir, setSortDir] = useState("asc"); // asc | desc
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null); // user object or null
+
+  const confirmActionRef = useRef(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: "",
+    whatHappens: "",
+    confirmMessage: "",
+    confirmText: "Confirm",
+    tone: "danger",
+    icon: null,
+    user: null
+  });
+
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    role: "USER",
+    password: "",
+    confirmPassword: ""
+  });
+
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showCreateConfirmPassword, setShowCreateConfirmPassword] = useState(false);
+
+  const hasPwInput = (form.password || "").length > 0 || (form.confirmPassword || "").length > 0;
+  const pwMatches = (form.password || "").length > 0 && form.password === form.confirmPassword;
+  const pwMismatch = hasPwInput && form.password !== form.confirmPassword;
+
+  const passwordFieldClasses = pwMatches
+    ? "border-green-500 focus:ring-2 focus:ring-green-500"
+    : pwMismatch
+      ? "border-red-500 focus:ring-2 focus:ring-red-500"
+      : "border-gray-300 focus:ring-2 focus:ring-indigo-500";
+
+  const displayUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = users.filter((u) => {
+      const matchesRole =
+        roleFilter === "ALL" ? true : String(u?.role) === roleFilter;
+      const hay = `${u?.fullName || ""} ${u?.email || ""}`.toLowerCase();
+      const matchesSearch = q ? hay.includes(q) : true;
+      return matchesRole && matchesSearch;
+    });
+
+    const dir = sortDir === "desc" ? -1 : 1;
+    const sorted = [...filtered].sort((a, b) => {
+      const av = (a?.[sortBy] ?? "").toString();
+      const bv = (b?.[sortBy] ?? "").toString();
+      return dir * av.localeCompare(bv, undefined, { sensitivity: "base" });
+    });
+
+    return sorted;
+  }, [users, search, roleFilter, sortBy, sortDir]);
+
+  const toggleSort = (key) => {
+    setSortBy((prev) => {
+      if (prev === key) {
+        setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+        return prev;
+      }
+      setSortDir("asc");
+      return key;
+    });
+  };
+
+  const SortHeader = ({ label, sortKey }) => {
+    const active = sortBy === sortKey;
+    const Icon = !active ? ArrowUpDown : sortDir === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSort(sortKey)}
+        className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 hover:bg-gray-100"
+        title={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <Icon className={`h-3.5 w-3.5 ${active ? "text-gray-900" : "text-gray-400"}`} />
+      </button>
+    );
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({
+      fullName: "",
+      email: "",
+      role: "USER",
+      password: "",
+      confirmPassword: ""
+    });
+    setShowCreatePassword(false);
+    setShowCreateConfirmPassword(false);
+    setModalOpen(true);
+  };
+
+  const openEdit = (user) => {
+    setEditing(user);
+    setForm({
+      fullName: user?.fullName || "",
+      email: user?.email || "",
+      role: user?.role || "USER",
+      password: "",
+      confirmPassword: ""
+    });
+    setModalOpen(true);
+  };
+
+  const openConfirm = (config, action) => {
+    confirmActionRef.current = action;
+    setConfirmConfig(config);
+    setConfirmOpen(true);
+  };
+
+  const closeConfirm = () => {
+    if (confirmLoading) return;
+    setConfirmOpen(false);
+    confirmActionRef.current = null;
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmActionRef.current) return;
+    setConfirmLoading(true);
+    try {
+      await confirmActionRef.current();
+    } finally {
+      setConfirmLoading(false);
+      setConfirmOpen(false);
+      confirmActionRef.current = null;
+    }
+  };
+
+  const closeModal = () => {
+    if (saving) return;
+    setModalOpen(false);
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getAllUsers();
+      const data = unwrapApiData(res);
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(getApiMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (saving) return;
+
+    if (!form.fullName.trim()) {
+      showError("Full name is required");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      showError("Email is required");
+      return;
+    }
+
+    if (!ROLE_OPTIONS.some((r) => r.value === form.role)) {
+      showError("Please select a valid role");
+      return;
+    }
+
+    if (!editing) {
+      if ((form.password || "").length < 6) {
+        showError("Password must be at least 6 characters");
+        return;
+      }
+      if (form.password !== form.confirmPassword) {
+        showError("Passwords do not match");
+        return;
+      }
+    }
+
+    const doSave = async () => {
+      setSaving(true);
+      try {
+        if (editing) {
+          await updateUser(editing.id, {
+            fullName: form.fullName.trim(),
+            email: form.email.trim(),
+            role: form.role
+          });
+          showSuccess("User updated");
+        } else {
+          await createUser({
+            fullName: form.fullName.trim(),
+            email: form.email.trim(),
+            password: form.password,
+            role: form.role
+          });
+          showSuccess("User created");
+        }
+
+        setModalOpen(false);
+        await fetchUsers();
+      } catch (err) {
+        showError(getApiMessage(err));
+      } finally {
+        setSaving(false);
+      }
+    };
+    await doSave();
+  };
+
+  const toggleEnabled = async (user) => {
+    const next = !user.enabled;
+    try {
+      await updateUserStatus(user.id, next);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, enabled: next } : u))
+      );
+      showSuccess(next ? "User enabled" : "User disabled");
+    } catch (err) {
+      showError(getApiMessage(err));
+    }
+  };
+
+  const toggleLocked = async (user) => {
+    const next = !user.locked;
+    try {
+      await updateUserLockStatus(user.id, next);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, locked: next } : u))
+      );
+      showSuccess(next ? "User locked" : "User unlocked");
+    } catch (err) {
+      showError(getApiMessage(err));
+    }
+  };
+
+  const handleDelete = async (user) => {
+    try {
+      await deleteUser(user.id);
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      showSuccess("User deleted");
+    } catch (err) {
+      showError(getApiMessage(err));
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">
+            Admin · User Management
+          </h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Add and manage managers, engineers, and users.
+          </p>
+        </div>
+
+        <button
+          onClick={openCreate}
+          className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          Add User
+        </button>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or email..."
+            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 sm:max-w-md"
+          />
+
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500 sm:w-56"
+          >
+            <option value="ALL">All roles</option>
+            {ROLE_OPTIONS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="text-sm text-gray-600">
+          {displayUsers.length} user{displayUsers.length === 1 ? "" : "s"}
+        </div>
+      </div>
+
+      <div className="mt-5 overflow-x-auto rounded-xl border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                <SortHeader label="Name" sortKey="fullName" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                <SortHeader label="Email" sortKey="email" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                <SortHeader label="Role" sortKey="role" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Status
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Lock
+              </th>
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {loading ? (
+              <tr>
+                <td className="px-4 py-6 text-sm text-gray-600" colSpan={6}>
+                  Loading users...
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td className="px-4 py-6 text-sm text-gray-700" colSpan={6}>
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <span className="font-semibold">Failed to load:</span>{" "}
+                      {error}
+                    </div>
+                    <div>
+                      <button
+                        onClick={fetchUsers}
+                        className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : displayUsers.length === 0 ? (
+              <tr>
+                <td className="px-4 py-10 text-center text-sm text-gray-600" colSpan={6}>
+                  No users found.
+                </td>
+              </tr>
+            ) : (
+              displayUsers.map((u) => (
+                <tr key={u.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                    {u.fullName || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {u.email || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    <span className="text-sm font-medium text-gray-800">
+                      {formatRole(u.role)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {u.enabled ? (
+                      <Badge tone="green">Enabled</Badge>
+                    ) : (
+                      <Badge tone="red">Disabled</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {u.locked ? (
+                      <Badge tone="yellow">Locked</Badge>
+                    ) : (
+                      <Badge tone="gray">Unlocked</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => openEdit(u)}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() =>
+                          openConfirm(
+                            {
+                              title: u.enabled ? "Disable user?" : "Enable user?",
+                              whatHappens: u.enabled
+                                ? "This will disable the account and prevent the user from logging in until re-enabled."
+                                : "This will enable the account and allow the user to log in.",
+                              confirmMessage: u.enabled
+                                ? "Are you sure you want to disable this user?"
+                                : "Are you sure you want to enable this user?",
+                              confirmText: u.enabled ? "Disable" : "Enable",
+                              tone: u.enabled ? "danger" : "neutral",
+                              icon: u.enabled ? UserX : UserCheck,
+                              user: u
+                            },
+                            async () => {
+                              await toggleEnabled(u);
+                            }
+                          )
+                        }
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                      >
+                        {u.enabled ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          openConfirm(
+                            {
+                              title: u.locked ? "Unlock user?" : "Lock user?",
+                              whatHappens: u.locked
+                                ? "This will unlock the account and allow the user to log in (if the account is enabled)."
+                                : "This will lock the account and prevent the user from logging in until unlocked.",
+                              confirmMessage: u.locked
+                                ? "Are you sure you want to unlock this user?"
+                                : "Are you sure you want to lock this user?",
+                              confirmText: u.locked ? "Unlock" : "Lock",
+                              tone: u.locked ? "neutral" : "danger",
+                              icon: u.locked ? Unlock : Lock,
+                              user: u
+                            },
+                            async () => {
+                              await toggleLocked(u);
+                            }
+                          )
+                        }
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+                      >
+                        {u.locked ? "Unlock" : "Lock"}
+                      </button>
+                      <button
+                        onClick={() =>
+                          openConfirm(
+                            {
+                              title: "Delete user?",
+                              whatHappens:
+                                "This will permanently delete the user account. This action cannot be undone.",
+                              confirmMessage: "Are you sure you want to delete this user?",
+                              confirmText: "Delete",
+                              tone: "danger",
+                              icon: Trash2,
+                              user: u
+                            },
+                            async () => {
+                              await handleDelete(u);
+                            }
+                          )
+                        }
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={confirmConfig.title}
+        whatHappens={confirmConfig.whatHappens}
+        confirmMessage={confirmConfig.confirmMessage}
+        confirmText={confirmConfig.confirmText}
+        tone={confirmConfig.tone}
+        icon={confirmConfig.icon}
+        user={confirmConfig.user}
+        loading={confirmLoading}
+        onCancel={closeConfirm}
+        onConfirm={handleConfirm}
+      />
+
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? "Edit user" : "Add user"}
+      >
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                Full name
+              </label>
+              <input
+                value={form.fullName}
+                onChange={(e) => setForm((p) => ({ ...p, fullName: e.target.value }))}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g. Jane Doe"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                Email
+              </label>
+              <input
+                value={form.email}
+                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g. jane@company.com"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                Role
+              </label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {!editing && (
+              <>
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-gray-600">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const pwd = generateStrongPassword(12);
+                        setForm((p) => ({
+                          ...p,
+                          password: pwd,
+                          confirmPassword: pwd
+                        }));
+                      }}
+                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                    >
+                      Generate
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showCreatePassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                      className={`w-full rounded-xl border px-3 py-2 pr-11 text-sm outline-none ${passwordFieldClasses}`}
+                      placeholder="Minimum 6 characters"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-indigo-600"
+                      aria-label={showCreatePassword ? "Hide password" : "Show password"}
+                    >
+                      {showCreatePassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-gray-600">
+                    Confirm password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCreateConfirmPassword ? "text" : "password"}
+                      value={form.confirmPassword}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                      }
+                      className={`w-full rounded-xl border px-3 py-2 pr-11 text-sm outline-none ${passwordFieldClasses}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateConfirmPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-indigo-600"
+                      aria-label={showCreateConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showCreateConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {pwMatches && (
+                    <p className="mt-1 text-xs font-medium text-green-700">
+                      Passwords match
+                    </p>
+                  )}
+                  {pwMismatch && (
+                    <p className="mt-1 text-xs font-medium text-red-700">
+                      Passwords do not match
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={saving}
+              className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {saving ? "Saving..." : editing ? "Save changes" : "Create user"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+

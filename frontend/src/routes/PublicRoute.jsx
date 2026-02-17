@@ -1,9 +1,16 @@
 import { Navigate } from "react-router-dom";
-import { isAuthenticated } from "../auth/auth";
+import { useAuth } from "../context/useAuth";
 
 export default function PublicRoute({ children }) {
-  if (isAuthenticated()) {
-    const role = localStorage.getItem("userRole");
+  const { token, user } = useAuth();
+
+  // If user is authenticated, redirect to their dashboard
+  if (token && user) {
+    if (user?.mustChangePassword) {
+      return <Navigate to="/force-change-password" replace />;
+    }
+
+    const role = user.role;
 
     switch (role) {
       case "ADMIN":

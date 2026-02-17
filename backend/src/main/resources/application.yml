@@ -53,6 +53,8 @@ app:
   mail:
     from: ${GMAIL_USERNAME}
     admin: ${GMAIL_PASSWORD}
+  frontend:
+    login-url: ${FRONTEND_LOGIN_URL:http://localhost:5173/login}
 
 jwt:
   secret: ${JWT_SECRET}

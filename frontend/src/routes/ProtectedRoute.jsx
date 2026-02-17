@@ -1,49 +1,12 @@
-// import { Navigate } from "react-router-dom";
-// import { useAuth } from "../context/useAuth";
-
-// const ProtectedRoute = ({ children, allowedRoles }) => {
-//   const auth = useAuth();
-
-//   // SAFETY: auth not ready yet
-//   if (!auth) {
-//     return null;
-//   }
-
-//   const { user, token, loading } = auth;
-
-//   // Wait for auth to initialize
-//   if (loading) {
-//     return <div style={{ padding: 40 }}>Loading...</div>;
-//   }
-
-//   // Not logged in
-//   if (!token) {
-//     return <Navigate to="/login" replace />;
-//   }
-
-//   // Role not allowed
-//   if (
-//     allowedRoles &&
-//     user &&
-//     !allowedRoles.includes(user.role)
-//   ) {
-//     return <Navigate to="/unauthorized" replace />;
-//   }
-
-//   // Allowed
-//   return children;
-// };
-
-// export default ProtectedRoute;
-
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { token, user } = useAuth();
   const location = useLocation();
+  const forceChangePath = "/force-change-password";
 
-  // 🔥 HARD BLOCK: no token = no render
+  // Redirect to login if not authenticated
   if (!token || !user) {
     return (
       <Navigate
@@ -52,6 +15,11 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
         state={{ from: location }}
       />
     );
+  }
+
+  // Force password change on first login
+  if (user?.mustChangePassword && location.pathname !== forceChangePath) {
+    return <Navigate to={forceChangePath} replace state={{ from: location }} />;
   }
 
   // Role protection

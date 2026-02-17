@@ -1,35 +1,54 @@
 import { Bell, Settings, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
+
+function getInitialsFromName(name) {
+  const cleaned = String(name || "").trim();
+  if (!cleaned) return "?";
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function getDisplayName(user) {
+  if (user?.fullName) return user.fullName;
+  // fallback to email prefix if backend doesn't provide fullName
+  if (user?.sub && String(user.sub).includes("@")) return String(user.sub).split("@")[0];
+  if (user?.email && String(user.email).includes("@")) return String(user.email).split("@")[0];
+  return user?.sub || user?.email || "User";
+}
 
 const Header = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   const handleLogout = async () => {
-  try {
-    await logout(); // backend API (optional)
-  } finally {
-    localStorage.clear();
+    try {
+      await logout(); // This already clears localStorage and updates auth state
+    } catch {
+      // Silently handle errors - logout will proceed anyway
+    }
+    
+    // Clear sessionStorage and force full page reload to clear any cached state
     sessionStorage.clear();
-
-    navigate("/login", { replace: true });
-
-    // 🔥 FORCE app reset (kills bfcache)
     window.location.href = "/login";
-  }
-};
+  };
 
-  const initials = user?.email
-    ? user.email.charAt(0).toUpperCase()
-    : "?";
+  const displayName = getDisplayName(user);
+  const displayEmail =
+    user?.sub || user?.email || "";
+  const initials = getInitialsFromName(displayName);
 
   return (
-    <header className="h-16 bg-white border-b flex items-center justify-between px-6">
-      
+    <header className="sticky top-0 z-40 h-16 border-b border-gray-200 bg-white/95 backdrop-blur">
+      <div className="flex h-16 items-center justify-between px-6">
       {/* LEFT */}
-      <div className="text-lg font-semibold text-gray-700">
-        ServicePulse
+      <div className="flex items-center gap-3">
+        <div className="text-base font-semibold text-gray-800">
+          Dashboard
+        </div>
+        <div className="hidden h-5 w-px bg-gray-200 sm:block" />
+        <div className="hidden text-sm text-gray-500 sm:block">
+          Welcome back
+        </div>
       </div>
 
       {/* RIGHT */}
@@ -55,11 +74,13 @@ const Header = () => {
           </div>
           <div className="leading-tight">
             <p className="text-sm font-medium text-gray-700">
-              {user?.email}
+              {displayName}
             </p>
-            <p className="text-xs text-gray-500">
-              {user?.role}
-            </p>
+            {!!displayEmail && (
+              <p className="text-xs text-gray-500">
+                {displayEmail}
+              </p>
+            )}
           </div>
         </div>
 
@@ -72,6 +93,7 @@ const Header = () => {
           <LogOut className="w-5 h-5" />
         </button>
 
+      </div>
       </div>
     </header>
   );

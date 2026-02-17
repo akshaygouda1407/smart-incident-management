@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   verifyRegisterOtp,
   verifyForgotOtp,
@@ -34,23 +34,8 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
     }
   };
 
-  /* -------------------- AUTO SUBMIT -------------------- */
-  useEffect(() => {
-    const code = otp.join("");
-
-    if (
-      code.length === OTP_LENGTH &&
-      !loading &&
-      !isOtpExpired &&
-      !submittedRef.current
-    ) {
-      submittedRef.current = true;
-      handleVerify(code);
-    }
-  }, [otp]);
-
   /* -------------------- VERIFY OTP -------------------- */
-  const handleVerify = async (code) => {
+  const handleVerify = useCallback(async (code) => {
     if (loading) return;
 
     setLoading(true);
@@ -76,7 +61,22 @@ export default function VerifyOtpModal({ email, purpose, onClose }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, purpose, onClose]);
+
+  /* -------------------- AUTO SUBMIT -------------------- */
+  useEffect(() => {
+    const code = otp.join("");
+
+    if (
+      code.length === OTP_LENGTH &&
+      !loading &&
+      !isOtpExpired &&
+      !submittedRef.current
+    ) {
+      submittedRef.current = true;
+      handleVerify(code);
+    }
+  }, [otp, loading, isOtpExpired, handleVerify]);
 
   /* -------------------- RESEND OTP TIMER -------------------- */
   useEffect(() => {

@@ -118,15 +118,15 @@ public class UserController {
     }
 
     @PutMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>> changePassword(
+    public ResponseEntity<ApiResponse<LoginResponse>> changePassword(
             @RequestBody ChangePasswordRequest request) {
 
-        userService.changePassword(request);
+        LoginResponse response = userService.changePassword(request);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Password changed successfully",
-                        null
+                        response
                 )
         );
     }

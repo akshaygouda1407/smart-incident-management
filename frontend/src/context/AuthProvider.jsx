@@ -2,6 +2,13 @@ import { useState, useEffect } from "react";
 import { AuthContext } from "./AuthContext";
 import { jwtDecode } from "jwt-decode";
 import { logoutApi } from "../api/authApi";
+import { getUserById } from "../api/userApi";
+
+function mergeFullName(decoded, fullName) {
+  if (!decoded) return decoded;
+  if (!fullName) return decoded;
+  return { ...decoded, fullName };
+}
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem("token"));
@@ -13,6 +20,46 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
+
+  // Enrich decoded JWT user with profile data (e.g., fullName)
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateProfile = async () => {
+      if (!token) return;
+
+      let decoded;
+      try {
+        decoded = jwtDecode(token);
+      } catch {
+        return;
+      }
+
+      const userId = decoded?.userId;
+      if (!userId) return;
+
+      try {
+        const res = await getUserById(userId);
+        const fullName = res?.data?.fullName;
+        if (cancelled) return;
+        if (fullName) {
+          setUser((prev) => mergeFullName(prev || decoded, fullName));
+        } else {
+          // At least ensure latest decoded is set
+          setUser((prev) => prev || decoded);
+        }
+      } catch {
+        // If profile fetch fails, still ensure we have decoded data
+        if (cancelled) return;
+        setUser((prev) => prev || decoded);
+      }
+    };
+
+    hydrateProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   // Listen for storage changes (e.g., when token is set in another tab/component)
   useEffect(() => {
@@ -71,12 +118,11 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       if (token) {
-        await logoutApi(token);
+        await logoutApi();
       }
-    } catch (err) {
+    } catch {
       // Even if API fails, force logout
-      console.warn("Logout API failed, clearing session");
-      return err;
+      // Silently handle logout errors - user will be logged out locally anyway
     } finally {
       localStorage.clear();
       setToken(null);

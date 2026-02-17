@@ -110,3 +110,16 @@
   display: none;             /* Chrome, Safari */
 }
 
+/* Hide built-in password reveal icons (Edge/IE) to avoid double "eye" buttons */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+/* Some Chromium variants show a credentials autofill button */
+input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+

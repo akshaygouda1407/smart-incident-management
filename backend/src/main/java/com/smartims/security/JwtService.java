@@ -45,6 +45,7 @@ public class JwtService {
         claims.put("userId", user.getId());
         claims.put("role", user.getRole().name());
         claims.put("tokenVersion", user.getTokenVersion());
+        claims.put("mustChangePassword", user.isMustChangePassword());
 
         return generateToken(claims, user.getEmail());
     }

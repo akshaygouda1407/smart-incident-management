@@ -52,7 +52,7 @@ export default function ResetPasswordModal({ email, onClose }) {
     setLoading(true);
     try {
       await resetPassword(email, password);
-      showSuccess("Password reset successfully 🔐");
+      showSuccess("Password reset successfully");
       onClose(true);
     } catch (err) {
       showError(err?.response?.data?.message || "Reset failed");

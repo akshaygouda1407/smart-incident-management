@@ -44,6 +44,9 @@ public class User {
     @Column(name = "token_version", nullable = false)
     private Integer tokenVersion = 0;
 
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
+
     public void incrementTokenVersion() {
         this.tokenVersion++;
     }
