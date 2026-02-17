@@ -10,7 +10,7 @@ import { useAuth } from "../../context/useAuth";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, updateAuth } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,21 +37,38 @@ export default function Login() {
 
       if (!data?.token || !data?.role) {
         showError("Login failed. Please try again.");
+        setLoading(false);
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role);
+      // Update auth state immediately
+      if (updateAuth) {
+        updateAuth(data.token);
+      } else {
+        // Fallback: update localStorage and trigger state update
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role);
+        // Trigger custom event to update auth state
+        window.dispatchEvent(new CustomEvent("authUpdate", { detail: { token: data.token } }));
+      }
 
-      showSuccess("Welcome to ServicePulse");
-
-      navigate(
+      // Determine dashboard path based on role
+      const dashboardPath = 
         data.role === "ADMIN" ? "/admin/dashboard" :
         data.role === "MANAGER" ? "/manager/dashboard" :
         data.role === "ENGINEER" ? "/engineer/dashboard" :
-        "/user/dashboard",
-        { replace: true } // 🔥 CRITICAL
-      );
+        "/user/dashboard";
+
+      // Use a small delay to ensure state is updated before navigation
+      // This ensures ProtectedRoute sees the updated auth state
+      setTimeout(() => {
+        navigate(dashboardPath, { replace: true });
+        
+        // Show success message after navigation
+        setTimeout(() => {
+          showSuccess("Welcome to ServicePulse");
+        }, 100);
+      }, 50);
     } catch (err) {
       showError(
         err?.response?.data?.message || "Invalid email or password"
