@@ -26,11 +26,10 @@ export const requestRegisterOtp = (email) => {
 };
 
 export const verifyRegisterOtp = (email, otp) => {
-  return axios.post(
-    `${BASE_URL}/auth/register/verify-otp`,
-    null,
-    { params: { email, otp } }
-  );
+  return axios.post(`${BASE_URL}/auth/register/verify-otp`, {
+    email,
+    otp
+  });
 };
 
 export const requestForgotOtp = (email) => {

@@ -21,7 +21,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<ProjectResponse>> createProject(
             @RequestBody CreateProjectRequest request) {

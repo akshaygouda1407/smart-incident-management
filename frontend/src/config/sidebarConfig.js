@@ -10,6 +10,13 @@ import {
 } from "lucide-react";
 
 export const SIDEBAR_CONFIG = {
+  SUPER_ADMIN: [
+    { label: "Dashboard", path: "/superadmin/dashboard", icon: LayoutDashboard },
+    { label: "Add Company Admin", path: "/superadmin/add-company-admin", icon: Users },
+    { label: "View Users", path: "/superadmin/users", icon: ClipboardList },
+    { label: "Audit Logs", path: "/superadmin/logs", icon: FileBarChart }
+  ],
+
   ADMIN: [
     { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
     { label: "Projects", path: "/admin/projects", icon: FolderKanban },

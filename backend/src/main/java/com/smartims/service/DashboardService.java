@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface DashboardService {
 
+
     DashboardSummaryResponse getSummary();
 
     List<KeyValueCountResponse> getStatusDistribution();

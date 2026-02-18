@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -28,7 +29,7 @@ public class OtpServiceImpl implements OtpService {
 
         otpRepo.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
                 .ifPresent(lastOtp -> {
-                    if (lastOtp.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(30))) {
+                    if (Duration.between(lastOtp.getCreatedAt(), LocalDateTime.now()).toSeconds() < 30) {
                         throw new RuntimeException("Please wait before requesting another OTP");
                     }
                 });

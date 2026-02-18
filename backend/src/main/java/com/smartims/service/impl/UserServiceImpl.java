@@ -70,7 +70,7 @@ public class UserServiceImpl implements UserService {
         pending.setEmail(request.getEmail());
         pending.setFullName(request.getFullName());
         pending.setPassword(request.getPassword());
-        pending.setRole(Role.ADMIN);
+        pending.setRole(Role.SUPER_ADMIN);
 
         pendingRegisterStore.save(request.getEmail(), pending);
 
@@ -89,7 +89,7 @@ public class UserServiceImpl implements UserService {
         user.setEmail(pending.getEmail());
         user.setFullName(pending.getFullName());
         user.setPassword(passwordEncoder.encode(pending.getPassword()));
-        user.setRole(Role.ADMIN);
+        user.setRole(Role.SUPER_ADMIN);
         user.setEnabled(true);
         user.setVerified(true);
         user.setLocked(false);
@@ -156,11 +156,28 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Email already exists");
         }
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String creatorEmail = auth != null ? auth.getName() : null;
+        User creator = creatorEmail != null
+                ? userRepository.findByEmail(creatorEmail).orElse(null)
+                : null;
+
+        Role targetRole = request.getRole();
+        if (targetRole == null) {
+          targetRole = Role.USER;
+        }
+
+        String targetCompany = request.getCompany();
+        if (creator != null && creator.getRole() != Role.SUPER_ADMIN) {
+            targetCompany = creator.getCompany();
+        }
+
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
+                .role(targetRole)
+                .company(targetCompany)
                 .enabled(true)
                 .locked(false)
                 .mustChangePassword(true)
@@ -199,7 +216,36 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll()
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        if (email == null) {
+            return userRepository.findAll()
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
+            return userRepository.findAll()
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        String company = currentUser.getCompany();
+
+        if (company == null || company.isBlank()) {
+            return userRepository.findAll()
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        return userRepository.findByCompany(company)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -235,6 +281,18 @@ public class UserServiceImpl implements UserService {
 
         if (request.getRole() != null)
             user.setRole(request.getRole());
+
+        if (request.getCompany() != null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String email = auth != null ? auth.getName() : null;
+            User currentUser = email != null
+                    ? userRepository.findByEmail(email).orElse(null)
+                    : null;
+
+            if (currentUser != null && currentUser.getRole() == Role.SUPER_ADMIN) {
+                user.setCompany(request.getCompany());
+            }
+        }
 
         if (request.getEnabled() != null)
             user.setEnabled(request.getEnabled());
@@ -344,6 +402,7 @@ public class UserServiceImpl implements UserService {
                 .role(user.getRole())
                 .enabled(user.getEnabled())
                 .locked(user.getLocked())
+                .company(user.getCompany())
                 .build();
     }
 }

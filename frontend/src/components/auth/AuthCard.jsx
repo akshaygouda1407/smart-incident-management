@@ -2,7 +2,7 @@ export default function AuthCard({ title, subtitle, children, footer }) {
   return (
     <div
       className="
-        w-[580px]
+        w-145
         backdrop-blur-xl
         rounded-3xl
         border border-white/30

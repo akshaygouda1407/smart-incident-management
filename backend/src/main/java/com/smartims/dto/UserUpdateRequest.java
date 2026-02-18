@@ -10,4 +10,5 @@ public class UserUpdateRequest {
     private Role role;
     private Boolean enabled;
     private Boolean locked;
+    private String company;
 }

@@ -21,6 +21,11 @@ import EngineerDashboard from "../pages/engineer/EngineerDashboard";
 import UserDashboard from "../pages/user/UserDashboard";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import AdminUserManagement from "../pages/admin/AdminUserManagement";
+import AdminProjects from "../pages/admin/AdminProjects";
+import SuperAdminDashboard from "../pages/superadmin/SuperAdminDashboard";
+import SuperAdminAddCompanyAdmin from "../pages/superadmin/SuperAdminAddCompanyAdmin";
+import SuperAdminUsers from "../pages/superadmin/SuperAdminUsers";
+import SuperAdminLogs from "../pages/superadmin/SuperAdminLogs";
 
 export default function AppRoutes() {
   return (
@@ -62,12 +67,44 @@ export default function AppRoutes() {
       <Route
         element={
           <ProtectedRoute
-            allowedRoles={["ADMIN", "MANAGER", "ENGINEER", "USER"]}
+            allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"]}
           >
             <AuthLayout />
           </ProtectedRoute>
         }
       >
+        <Route
+          path="/superadmin/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+              <SuperAdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/add-company-admin"
+          element={
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+              <SuperAdminAddCompanyAdmin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/users"
+          element={
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+              <SuperAdminUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/superadmin/logs"
+          element={
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+              <SuperAdminLogs />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route
           path="/force-change-password"
@@ -80,15 +117,15 @@ export default function AppRoutes() {
         <Route
           path="/admin/projects"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
-              <PlaceholderPage title="Admin · Projects" />
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
+              <AdminProjects />
             </ProtectedRoute>
           }
         />
         <Route
           path="/admin/add-member"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
               <PlaceholderPage title="Admin · Add Member" />
             </ProtectedRoute>
           }
@@ -96,7 +133,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/sla-monitoring"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
               <PlaceholderPage title="Admin · SLA Monitoring" />
             </ProtectedRoute>
           }
@@ -104,7 +141,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/sla-config"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
               <PlaceholderPage title="Admin · SLA Configuration" />
             </ProtectedRoute>
           }
@@ -112,7 +149,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/users"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
               <AdminUserManagement />
             </ProtectedRoute>
           }
@@ -120,7 +157,7 @@ export default function AppRoutes() {
         <Route
           path="/admin/reports"
           element={
-            <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
               <PlaceholderPage title="Admin · Reports" />
             </ProtectedRoute>
           }

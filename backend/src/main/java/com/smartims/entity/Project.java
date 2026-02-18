@@ -23,7 +23,7 @@ public class Project {
     @Column(nullable = false, unique = true)
     private String name;
 
-    @Column(length = 1000)
+    @Column(length = 10000)
     private String description;
 
     // Manager who owns this project

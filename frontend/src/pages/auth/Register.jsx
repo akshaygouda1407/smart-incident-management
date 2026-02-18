@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthCard from "../../components/auth/AuthCard";
-import { register, requestRegisterOtp } from "../../api/authApi";
+import { register } from "../../api/authApi";
 import { showError, showSuccess } from "../../utils/toast";
 import VerifyOtpModal from "../../components/auth/VerifyOtpModal";
 import bgImage from "../../assets/background.png";
@@ -32,7 +32,6 @@ export default function Register() {
 
     try {
       await register(form);
-      await requestRegisterOtp(form.email);
 
       showSuccess("OTP sent to your email");
 

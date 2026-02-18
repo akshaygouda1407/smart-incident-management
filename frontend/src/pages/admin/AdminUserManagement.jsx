@@ -234,6 +234,7 @@ export default function AdminUserManagement() {
     fullName: "",
     email: "",
     role: "USER",
+    company: "",
     password: "",
     confirmPassword: ""
   });
@@ -256,7 +257,7 @@ export default function AdminUserManagement() {
     const filtered = users.filter((u) => {
       const matchesRole =
         roleFilter === "ALL" ? true : String(u?.role) === roleFilter;
-      const hay = `${u?.fullName || ""} ${u?.email || ""}`.toLowerCase();
+      const hay = `${u?.fullName || ""} ${u?.email || ""} ${u?.company || ""}`.toLowerCase();
       const matchesSearch = q ? hay.includes(q) : true;
       return matchesRole && matchesSearch;
     });
@@ -304,6 +305,7 @@ export default function AdminUserManagement() {
       fullName: "",
       email: "",
       role: "USER",
+      company: "",
       password: "",
       confirmPassword: ""
     });
@@ -318,6 +320,7 @@ export default function AdminUserManagement() {
       fullName: user?.fullName || "",
       email: user?.email || "",
       role: user?.role || "USER",
+      company: user?.company || "",
       password: "",
       confirmPassword: ""
     });
@@ -408,7 +411,8 @@ export default function AdminUserManagement() {
           await updateUser(editing.id, {
             fullName: form.fullName.trim(),
             email: form.email.trim(),
-            role: form.role
+            role: form.role,
+            company: form.company?.trim() || ""
           });
           showSuccess("User updated");
         } else {
@@ -416,7 +420,8 @@ export default function AdminUserManagement() {
             fullName: form.fullName.trim(),
             email: form.email.trim(),
             password: form.password,
-            role: form.role
+            role: form.role,
+            company: form.company?.trim() || ""
           });
           showSuccess("User created");
         }
@@ -530,6 +535,9 @@ export default function AdminUserManagement() {
                 <SortHeader label="Role" sortKey="role" />
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
+                <SortHeader label="Company" sortKey="company" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
                 Status
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">
@@ -586,6 +594,9 @@ export default function AdminUserManagement() {
                     <span className="text-sm font-medium text-gray-800">
                       {formatRole(u.role)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {u.company || "-"}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">
                     {u.enabled ? (
@@ -781,6 +792,18 @@ export default function AdminUserManagement() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-gray-600">
+                Company
+              </label>
+              <input
+                value={form.company}
+                onChange={(e) => setForm((p) => ({ ...p, company: e.target.value }))}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g. Acme Corp"
+              />
             </div>
 
             {!editing && (

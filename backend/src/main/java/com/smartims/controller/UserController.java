@@ -22,7 +22,7 @@ public class UserController {
 
     // POST - Create user
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
     public ApiResponse<UserResponse> createUser(
             @RequestBody UserCreateRequest request) {
         UserResponse response = userService.createUser(request);

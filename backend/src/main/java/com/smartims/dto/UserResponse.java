@@ -13,4 +13,5 @@ public class UserResponse {
     private Role role;
     private boolean enabled;
     private boolean locked;
+    private String company;
 }

@@ -4,6 +4,7 @@ import com.smartims.dto.CreateIssueRequest;
 import com.smartims.dto.IssueResponse;
 import com.smartims.dto.SlaComplianceResponse;
 import com.smartims.dto.SlaStatusResponse;
+import com.smartims.repository.SlaBreachRepository;
 import com.smartims.entity.*;
 import com.smartims.enums.IssueStatus;
 import com.smartims.enums.Severity;
