@@ -6,6 +6,7 @@ import com.smartims.enums.IssueStatus;
 import com.smartims.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -54,5 +55,8 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
 
     long countBySlaBreachedTrue();
     long count();
+
+    @Query("SELECT i FROM Issue i WHERE i.project.manager.company = :company")
+    List<Issue> findByCompany(@Param("company") String company);
 
 }

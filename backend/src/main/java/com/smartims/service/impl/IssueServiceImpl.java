@@ -138,6 +138,9 @@ public class IssueServiceImpl implements IssueService {
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new ResourceNotFoundException("Issue not found"));
 
+        // Check access permissions
+        validateIssueAccess(issue);
+
         IssueStatus oldStatus = issue.getStatus();
 
         switch (role) {
@@ -187,13 +190,57 @@ public class IssueServiceImpl implements IssueService {
     public IssueResponse getIssueById(Long id) {
         Issue issue = issueRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Issue not found with id: " + id));
+        
+        // Check access permissions
+        validateIssueAccess(issue);
+        
         return IssueMapper.toResponse(issue);
     }
 
     @Override
     public List<IssueResponse> getAllIssues() {
-        return issueRepository.findAll()
-                .stream()
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        // If no authentication, return all issues (shouldn't happen in practice)
+        if (email == null) {
+            return issueRepository.findAll()
+                    .stream()
+                    .map(IssueMapper::toResponse)
+                    .toList();
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Issue> issues;
+
+        // SUPER_ADMIN can see all issues
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            issues = issueRepository.findAll();
+        }
+        // ADMIN can see only their company's issues
+        else if (currentUser.getRole().name().equals("ADMIN")) {
+            String company = currentUser.getCompany();
+            if (company == null || company.isBlank()) {
+                issues = issueRepository.findAll();
+            } else {
+                issues = issueRepository.findByCompany(company);
+            }
+        }
+        // MANAGER can see only issues in their projects
+        else if (currentUser.getRole().name().equals("MANAGER")) {
+            List<Project> managerProjects = projectRepository.findByManager(currentUser);
+            issues = managerProjects.stream()
+                    .flatMap(project -> issueRepository.findByProject(project).stream())
+                    .toList();
+        }
+        // ENGINEER and USER can see only issues assigned to them
+        else {
+            issues = issueRepository.findByAssignedEngineer(currentUser);
+        }
+
+        return issues.stream()
                 .map(IssueMapper::toResponse)
                 .toList();
     }
@@ -203,6 +250,9 @@ public class IssueServiceImpl implements IssueService {
 
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        // Check access permissions
+        validateIssueAccess(issue);
 
         User engineer = userRepository.findById(engineerId)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
@@ -244,6 +294,9 @@ public class IssueServiceImpl implements IssueService {
 
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        // Check access permissions
+        validateIssueAccess(issue);
 
         User engineer = userRepository.findById(engineerId)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
@@ -303,6 +356,9 @@ public class IssueServiceImpl implements IssueService {
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
 
+        // Check access permissions
+        validateIssueAccess(issue);
+
         Project project = issue.getProject();
 
         List<User> engineers = project.getMembers()
@@ -351,6 +407,9 @@ public class IssueServiceImpl implements IssueService {
 
         Issue issue = issueRepository.findById(issueId)
                 .orElseThrow(() -> new RuntimeException("Issue not found"));
+
+        // Check access permissions
+        validateIssueAccess(issue);
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = issue.getSlaStartTime();
@@ -402,5 +461,48 @@ public class IssueServiceImpl implements IssueService {
                         Math.round(compliance * 100.0) / 100.0
                 )
                 .build();
+    }
+
+    private void validateIssueAccess(Issue issue) {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        if (email == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // SUPER_ADMIN can access any issue
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            return;
+        }
+
+        // ADMIN can access issues from their company only
+        if (currentUser.getRole().name().equals("ADMIN")) {
+            String userCompany = currentUser.getCompany();
+            String issueProjectManagerCompany = issue.getProject().getManager() != null ? 
+                    issue.getProject().getManager().getCompany() : null;
+
+            if (userCompany == null || !userCompany.equals(issueProjectManagerCompany)) {
+                throw new RuntimeException("Access denied: Issue belongs to a different company");
+            }
+            return;
+        }
+
+        // MANAGER can access issues from their projects only
+        if (currentUser.getRole().name().equals("MANAGER")) {
+            if (!issue.getProject().getManager().getId().equals(currentUser.getId())) {
+                throw new RuntimeException("Access denied: Issue is not in your project");
+            }
+            return;
+        }
+
+        // ENGINEER and USER can access only issues assigned to them
+        if (!currentUser.getId().equals(issue.getAssignedEngineer() != null ? 
+                issue.getAssignedEngineer().getId() : null)) {
+            throw new RuntimeException("Access denied: This issue is not assigned to you");
+        }
     }
 }

@@ -50,6 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .name(request.getName())
                 .description(request.getDescription())
                 .manager(manager)
+                .company(manager.getCompany())
                 .members(members)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -98,8 +99,45 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<ProjectResponse> getAllProjects() {
-        return projectRepository.findAll()
-                .stream()
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        // If no authentication, return all projects (shouldn't happen in practice)
+        if (email == null) {
+            return projectRepository.findAll()
+                    .stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Project> projects;
+
+        // SUPER_ADMIN can see all projects
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            projects = projectRepository.findAll();
+        }
+        // ADMIN can see only their company's projects
+        else if (currentUser.getRole().name().equals("ADMIN")) {
+            String company = currentUser.getCompany();
+            if (company == null || company.isBlank()) {
+                projects = projectRepository.findAll();
+            } else {
+                projects = projectRepository.findByCompany(company);
+            }
+        }
+        // MANAGER can see only their projects
+        else if (currentUser.getRole().name().equals("MANAGER")) {
+            projects = projectRepository.findByManager(currentUser);
+        }
+        // ENGINEER and USER can see only projects they're members of
+        else {
+            projects = projectRepository.findByMembersContaining(currentUser);
+        }
+
+        return projects.stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -110,6 +148,9 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
+        // Check access permissions
+        validateProjectAccess(project);
+
         return mapToResponse(project);
     }
 
@@ -118,6 +159,9 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        // Check access permissions
+        validateProjectAccess(project);
 
         String oldName = project.getName();
 
@@ -133,6 +177,7 @@ public class ProjectServiceImpl implements ProjectService {
             User manager = userRepository.findById(request.getManagerId())
                     .orElseThrow(() -> new RuntimeException("Manager not found"));
             project.setManager(manager);
+            project.setCompany(manager.getCompany());
         }
 
         if (request.getMemberIds() != null) {
@@ -162,6 +207,9 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
+        // Check access permissions
+        validateProjectAccess(project);
+
         projectRepository.delete(project);
 
         auditLogService.log(
@@ -170,6 +218,47 @@ public class ProjectServiceImpl implements ProjectService {
                 id,
                 "Project deleted: " + project.getName()
         );
+    }
+
+    private void validateProjectAccess(Project project) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        if (email == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // SUPER_ADMIN can access any project
+        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+            return;
+        }
+
+        // ADMIN can access projects from their company only
+        if (currentUser.getRole().name().equals("ADMIN")) {
+            String userCompany = currentUser.getCompany();
+            String projectManagerCompany = project.getManager() != null ? project.getManager().getCompany() : null;
+
+            if (userCompany == null || !userCompany.equals(projectManagerCompany)) {
+                throw new RuntimeException("Access denied: Project belongs to a different company");
+            }
+            return;
+        }
+
+        // MANAGER can access projects they manage and only from their company
+        if (currentUser.getRole().name().equals("MANAGER")) {
+            if (!project.getManager().getId().equals(currentUser.getId())) {
+                throw new RuntimeException("Access denied: You can only access projects you manage");
+            }
+            return;
+        }
+
+        // ENGINEER and USER can access projects they're members of
+        if (!project.getMembers().contains(currentUser)) {
+            throw new RuntimeException("Access denied: You are not a member of this project");
+        }
     }
 
     private ProjectResponse mapToResponse(Project project) {

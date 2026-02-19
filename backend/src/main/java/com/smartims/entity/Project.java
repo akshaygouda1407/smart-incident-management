@@ -31,6 +31,10 @@ public class Project {
     @JoinColumn(name = "manager_id")
     private User manager;
 
+    // Company field for easier filtering and isolation
+    @Column(name = "company")
+    private String company;
+
     // Project members (engineers + users)
     @ManyToMany
     @JoinTable(

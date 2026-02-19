@@ -172,6 +172,14 @@ public class UserServiceImpl implements UserService {
             targetCompany = creator.getCompany();
         }
 
+        // Restriction: Only 1 ADMIN per company
+        if (targetRole == Role.ADMIN && targetCompany != null && !targetCompany.trim().isEmpty()) {
+            long existingAdminCount = userRepository.findByRoleAndCompany(Role.ADMIN, targetCompany).size();
+            if (existingAdminCount > 0) {
+                throw new RuntimeException("Company \"" + targetCompany + "\" already has an admin. Only 1 admin per company is allowed.");
+            }
+        }
+
         User user = User.builder()
                 .fullName(request.getFullName())
                 .email(request.getEmail())
@@ -257,6 +265,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Check access permissions
+        validateUserAccess(user);
+
         return mapToResponse(user);
     }
 
@@ -265,6 +276,9 @@ public class UserServiceImpl implements UserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check access permissions
+        validateUserAccess(user);
 
         if (request.getFullName() != null)
             user.setFullName(request.getFullName());
@@ -318,6 +332,9 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Check access permissions
+        validateUserAccess(user);
+
         userRepository.delete(user);
 
         auditLogService.log(
@@ -333,6 +350,9 @@ public class UserServiceImpl implements UserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check access permissions
+        validateUserAccess(user);
 
         user.setEnabled(enabled);
         userRepository.save(user);
@@ -350,6 +370,9 @@ public class UserServiceImpl implements UserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check access permissions
+        validateUserAccess(user);
 
         user.setLocked(locked);
         userRepository.save(user);
@@ -404,5 +427,30 @@ public class UserServiceImpl implements UserService {
                 .locked(user.getLocked())
                 .company(user.getCompany())
                 .build();
+    }
+
+    private void validateUserAccess(User targetUser) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+
+        if (email == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // SUPER_ADMIN can access any user
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
+            return;
+        }
+
+        // Users can only access users from their own company, or their own profile
+        String currentUserCompany = currentUser.getCompany();
+        String targetUserCompany = targetUser.getCompany();
+
+        if (currentUserCompany == null || !currentUserCompany.equals(targetUserCompany)) {
+            throw new RuntimeException("Access denied: You can only access users from your company");
+        }
     }
 }
