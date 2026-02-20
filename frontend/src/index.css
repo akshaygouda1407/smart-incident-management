@@ -123,3 +123,120 @@ input::-webkit-credentials-auto-fill-button {
   pointer-events: none;
 }
 
+/* THEME TOKENS */
+:root {
+  color-scheme: light;
+  --app-bg: #f3f4f6;
+  --panel: #ffffff;
+  --panel-soft: #f9fafb;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-soft: #6b7280;
+}
+
+.dark {
+  color-scheme: dark;
+  --app-bg: #0b1220;
+  --panel: #111827;
+  --panel-soft: #1f2937;
+  --border: #334155;
+  --text: #e5e7eb;
+  --text-soft: #94a3b8;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+* {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+/* Global dark mode adaptation for existing utility-based markup */
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/40 {
+  background-color: var(--panel) !important;
+}
+
+.dark .bg-gray-50 {
+  background-color: #1a2434 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: var(--panel-soft) !important;
+}
+
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: var(--border) !important;
+}
+
+.dark .text-gray-900 {
+  color: #f3f4f6 !important;
+}
+
+.dark .text-gray-800,
+.dark .text-gray-700 {
+  color: #d1d5db !important;
+}
+
+.dark .text-gray-400,
+.dark .text-gray-300 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: var(--text-soft) !important;
+}
+
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: #243246 !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #2b3648 !important;
+}
+
+.dark .shadow-xl,
+.dark .shadow-lg,
+.dark .shadow-sm {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: var(--border) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+.dark table thead {
+  background-color: #172131 !important;
+}
+
+.dark .otp-card {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.dark .otp-inputs input {
+  background: #0f172a;
+  border-color: var(--border);
+  color: #e5e7eb;
+}

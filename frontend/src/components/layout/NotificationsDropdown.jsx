@@ -95,7 +95,7 @@ export default function NotificationsDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative text-gray-600 hover:text-indigo-600"
+        className="relative text-gray-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
         title="Notifications"
       >
         <Bell className="w-5 h-5" />
@@ -107,13 +107,13 @@ export default function NotificationsDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl z-50">
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
+        <div className="absolute right-0 mt-2 w-80 rounded-xl border border-gray-200 bg-white shadow-xl z-50 dark:border-slate-700 dark:bg-slate-900">
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-slate-700">
+            <h3 className="font-semibold text-gray-900 dark:text-slate-100">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                className="text-xs font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
                 title="Mark all as read"
               >
                 <CheckCircle2 className="w-4 h-4" />
@@ -123,31 +123,31 @@ export default function NotificationsDropdown() {
 
           <div className="max-h-96 overflow-y-auto">
             {loading ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-600">
+              <div className="px-4 py-6 text-center text-sm text-gray-600 dark:text-slate-300">
                 Loading...
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-6 text-center text-sm text-gray-600">
+              <div className="px-4 py-6 text-center text-sm text-gray-600 dark:text-slate-300">
                 No notifications
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`border-b border-gray-100 px-4 py-3 hover:bg-gray-50 cursor-pointer transition ${
-                    !notification.read ? "bg-blue-50" : ""
+                  className={`border-b border-gray-100 px-4 py-3 hover:bg-gray-50 cursor-pointer transition dark:border-slate-800 dark:hover:bg-slate-800 ${
+                    !notification.read ? "bg-blue-50 dark:bg-indigo-950/40" : ""
                   }`}
                   onClick={(e) => !notification.read && handleMarkAsRead(notification.id, e)}
                 >
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-slate-100">
                         {notification.title || "Notification"}
                       </p>
-                      <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+                      <p className="mt-1 text-xs text-gray-600 line-clamp-2 dark:text-slate-300">
                         {notification.message || notification.description}
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-gray-500 dark:text-slate-400">
                         {new Date(notification.receivedAt).toLocaleDateString()}
                       </p>
                     </div>

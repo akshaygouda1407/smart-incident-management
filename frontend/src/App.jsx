@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { subscribe, removeToast } from "./utils/toast";
 import Toast from "./components/ui/Toast";
 import AppRoutes from "./routes/AppRoutes";
+import { useTheme } from "./context/useTheme";
 
 function App() {
   const [toasts, setToasts] = useState([]);
+  const { theme } = useTheme();
 
   useEffect(() => {
     return subscribe(setToasts);
@@ -32,7 +34,7 @@ function App() {
             <Toast
               toast={toast}
               onClose={removeToast}
-              theme="light"
+              theme={theme}
             />
           </div>
         ))}

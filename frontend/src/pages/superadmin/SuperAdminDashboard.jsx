@@ -11,6 +11,7 @@ import { getAllUsers } from "../../api/userApi";
 import { getAllProjects } from "../../api/projectApi";
 import { getAllAuditLogs } from "../../api/auditLogApi";
 import { showError } from "../../utils/toast";
+import { useTheme } from "../../context/useTheme";
 
 const ROLE_ORDER = ["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"];
 const ROLE_COLORS = {
@@ -113,7 +114,7 @@ function BarList({ items, emptyText }) {
   );
 }
 
-function StatusDonut({ values, selected, onSelect }) {
+function StatusDonut({ values, selected, onSelect, isDark }) {
   const total = values.active + values.disabled + values.locked;
   const r = 52;
   const c = 2 * Math.PI * r;
@@ -132,92 +133,159 @@ function StatusDonut({ values, selected, onSelect }) {
   const strokeFor = (key) => (selected === key ? 18 : 14);
   const opacityFor = (key) => (selected === key ? 1 : 0.45);
 
+  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+  const textSecondary = isDark ? "#94A3B8" : "#64748B";
+  const hoverBg = isDark ? "rgba(30,41,59,0.8)" : "#F8FAFC";
+  const selectedBg = (tone) =>
+    isDark
+      ? tone === "active"
+        ? "rgba(20,83,45,0.35)"
+        : tone === "disabled"
+          ? "rgba(120,53,15,0.35)"
+          : "rgba(127,29,29,0.35)"
+      : tone === "active"
+        ? "#ECFDF5"
+        : tone === "disabled"
+          ? "#FFFBEB"
+          : "#FEF2F2";
+  const selectedRing = (tone) =>
+    isDark
+      ? tone === "active"
+        ? "1px solid rgba(34,197,94,0.45)"
+        : tone === "disabled"
+          ? "1px solid rgba(245,158,11,0.45)"
+          : "1px solid rgba(239,68,68,0.45)"
+      : tone === "active"
+        ? "1px solid #86EFAC"
+        : tone === "disabled"
+          ? "1px solid #FCD34D"
+          : "1px solid #FCA5A5";
+
   return (
     <div className="flex flex-col items-center gap-6 md:flex-row md:items-center">
       <div className="relative h-52 w-52">
         <svg viewBox="0 0 140 140" className="h-52 w-52 -rotate-90">
           <circle cx="70" cy="70" r={r} fill="none" stroke="#eef2ff" strokeWidth="14" />
-          <circle
-            cx="70"
-            cy="70"
-            r={r}
-            fill="none"
-            stroke="#16a34a"
-            strokeWidth={strokeFor("active")}
-            strokeDasharray={`${activeLen} ${c - activeLen}`}
-            strokeLinecap="butt"
-            className="cursor-pointer transition-all"
-            opacity={opacityFor("active")}
-            onClick={() => onSelect("active")}
-          />
-          <circle
-            cx="70"
-            cy="70"
-            r={r}
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth={strokeFor("disabled")}
-            strokeDasharray={`${disabledLen} ${c - disabledLen}`}
-            strokeDashoffset={-activeLen}
-            strokeLinecap="butt"
-            className="cursor-pointer transition-all"
-            opacity={opacityFor("disabled")}
-            onClick={() => onSelect("disabled")}
-          />
-          <circle
-            cx="70"
-            cy="70"
-            r={r}
-            fill="none"
-            stroke="#ef4444"
-            strokeWidth={strokeFor("locked")}
-            strokeDasharray={`${lockedLen} ${c - lockedLen}`}
-            strokeDashoffset={-(activeLen + disabledLen)}
-            strokeLinecap="butt"
-            className="cursor-pointer transition-all"
-            opacity={opacityFor("locked")}
-            onClick={() => onSelect("locked")}
-          />
+          {values.active > 0 && (
+            <circle
+              cx="70"
+              cy="70"
+              r={r}
+              fill="none"
+              stroke="#16a34a"
+              strokeWidth={strokeFor("active")}
+              strokeDasharray={`${activeLen} ${c - activeLen}`}
+              strokeLinecap="round"
+              className="cursor-pointer transition-all"
+              opacity={opacityFor("active")}
+              onClick={() => onSelect("active")}
+            />
+          )}
+          {values.disabled > 0 && (
+            <circle
+              cx="70"
+              cy="70"
+              r={r}
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth={strokeFor("disabled")}
+              strokeDasharray={`${disabledLen} ${c - disabledLen}`}
+              strokeDashoffset={-activeLen}
+              strokeLinecap="round"
+              className="cursor-pointer transition-all"
+              opacity={opacityFor("disabled")}
+              onClick={() => onSelect("disabled")}
+            />
+          )}
+          {values.locked > 0 && (
+            <circle
+              cx="70"
+              cy="70"
+              r={r}
+              fill="none"
+              stroke="#ef4444"
+              strokeWidth={strokeFor("locked")}
+              strokeDasharray={`${lockedLen} ${c - lockedLen}`}
+              strokeDashoffset={-(activeLen + disabledLen)}
+              strokeLinecap="round"
+              className="cursor-pointer transition-all"
+              opacity={opacityFor("locked")}
+              onClick={() => onSelect("locked")}
+            />
+          )}
         </svg>
         <div className="absolute inset-0 flex items-center justify-center text-center">
           <div>
-            <p className="text-xs uppercase tracking-wide text-gray-500">{selected}</p>
-            <p className="text-3xl font-bold text-gray-900">{selectedValue}</p>
-            <p className="text-xs text-gray-500">of {total}</p>
+            <p className="text-xs uppercase tracking-wide" style={{ color: textSecondary }}>{selected}</p>
+            <p className="text-3xl font-bold" style={{ color: textPrimary }}>{selectedValue}</p>
+            <p className="text-xs" style={{ color: textSecondary }}>of {total}</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2 text-sm">
+      <div className="w-full max-w-[220px] space-y-2 text-sm">
         <button
           type="button"
           onClick={() => onSelect("active")}
-          className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-gray-700 ${
-            selected === "active" ? "bg-green-50 ring-1 ring-green-200" : ""
-          }`}
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2 transition-all"
+          style={{
+            backgroundColor: selected === "active" ? selectedBg("active") : "transparent",
+            border: selected === "active" ? selectedRing("active") : "1px solid transparent"
+          }}
+          onMouseEnter={(e) => {
+            if (selected !== "active") e.currentTarget.style.backgroundColor = hoverBg;
+          }}
+          onMouseLeave={(e) => {
+            if (selected !== "active") e.currentTarget.style.backgroundColor = "transparent";
+          }}
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-green-600" />
-          Active: <span className="font-semibold">{values.active}</span>
+          <span className="flex items-center gap-2" style={{ color: textPrimary }}>
+            <span className="h-2.5 w-2.5 rounded-full bg-green-600" />
+            <span className="font-medium">Active</span>
+          </span>
+          <span className="font-semibold" style={{ color: textPrimary }}>{values.active}</span>
         </button>
         <button
           type="button"
           onClick={() => onSelect("disabled")}
-          className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-gray-700 ${
-            selected === "disabled" ? "bg-amber-50 ring-1 ring-amber-200" : ""
-          }`}
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2 transition-all"
+          style={{
+            backgroundColor: selected === "disabled" ? selectedBg("disabled") : "transparent",
+            border: selected === "disabled" ? selectedRing("disabled") : "1px solid transparent"
+          }}
+          onMouseEnter={(e) => {
+            if (selected !== "disabled") e.currentTarget.style.backgroundColor = hoverBg;
+          }}
+          onMouseLeave={(e) => {
+            if (selected !== "disabled") e.currentTarget.style.backgroundColor = "transparent";
+          }}
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-          Disabled: <span className="font-semibold">{values.disabled}</span>
+          <span className="flex items-center gap-2" style={{ color: textPrimary }}>
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+            <span className="font-medium">Disabled</span>
+          </span>
+          <span className="font-semibold" style={{ color: textPrimary }}>{values.disabled}</span>
         </button>
         <button
           type="button"
           onClick={() => onSelect("locked")}
-          className={`flex w-full items-center gap-2 rounded-lg px-2 py-1 text-gray-700 ${
-            selected === "locked" ? "bg-red-50 ring-1 ring-red-200" : ""
-          }`}
+          className="flex w-full items-center justify-between rounded-lg px-3 py-2 transition-all"
+          style={{
+            backgroundColor: selected === "locked" ? selectedBg("locked") : "transparent",
+            border: selected === "locked" ? selectedRing("locked") : "1px solid transparent"
+          }}
+          onMouseEnter={(e) => {
+            if (selected !== "locked") e.currentTarget.style.backgroundColor = hoverBg;
+          }}
+          onMouseLeave={(e) => {
+            if (selected !== "locked") e.currentTarget.style.backgroundColor = "transparent";
+          }}
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-          Locked: <span className="font-semibold">{values.locked}</span>
+          <span className="flex items-center gap-2" style={{ color: textPrimary }}>
+            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+            <span className="font-medium">Locked</span>
+          </span>
+          <span className="font-semibold" style={{ color: textPrimary }}>{values.locked}</span>
         </button>
       </div>
     </div>
@@ -225,6 +293,7 @@ function StatusDonut({ values, selected, onSelect }) {
 }
 
 export default function SuperAdminDashboard() {
+  const { isDark } = useTheme();
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -446,6 +515,7 @@ export default function SuperAdminDashboard() {
                   values={statusValues}
                   selected={selectedStatus}
                   onSelect={setSelectedStatus}
+                  isDark={isDark}
                 />
               </div>
             </div>

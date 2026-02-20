@@ -1,5 +1,6 @@
-import { LogOut } from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
 import { useAuth } from "../../context/useAuth";
+import { useTheme } from "../../context/useTheme";
 import NotificationsDropdown from "./NotificationsDropdown";
 import SettingsDropdown from "./SettingsDropdown";
 
@@ -21,6 +22,7 @@ function getDisplayName(user) {
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -40,15 +42,15 @@ const Header = () => {
   const initials = getInitialsFromName(displayName);
 
   return (
-    <header className="sticky top-0 z-40 h-16 border-b border-gray-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 h-16 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
       <div className="flex h-16 items-center justify-between px-6">
       {/* LEFT */}
       <div className="flex items-center gap-3">
         {/* <div className="text-base font-semibold text-gray-800">
           Dashboard
         </div> */}
-        <div className="hidden h-5 w-px bg-gray-200 sm:block" />
-        <div className="hidden text-sm text-gray-500 sm:block">
+        <div className="hidden h-5 w-px bg-gray-200 dark:bg-slate-700 sm:block" />
+        <div className="hidden text-sm text-gray-500 dark:text-slate-300 sm:block">
           Welcome, {displayName}
         </div>
       </div>
@@ -59,6 +61,16 @@ const Header = () => {
         {/* Notifications */}
         <NotificationsDropdown />
 
+        {/* Theme */}
+        <button
+          onClick={toggleTheme}
+          className="rounded-full border border-gray-200 bg-white p-2 text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+
         {/* Settings */}
         <SettingsDropdown />
 
@@ -68,11 +80,11 @@ const Header = () => {
             {initials}
           </div>
           <div className="leading-tight">
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-100">
               {displayName}
             </p>
             {!!displayEmail && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-slate-400">
                 {displayEmail}
               </p>
             )}
@@ -82,7 +94,7 @@ const Header = () => {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="text-red-600 hover:text-red-700"
+          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
           title="Logout"
         >
           <LogOut className="w-5 h-5" />

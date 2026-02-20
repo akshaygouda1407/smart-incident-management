@@ -124,7 +124,8 @@ export const AuthProvider = ({ children }) => {
       // Even if API fails, force logout
       // Silently handle logout errors - user will be logged out locally anyway
     } finally {
-      localStorage.clear();
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
       setToken(null);
       setUser(null);
     }

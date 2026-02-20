@@ -27,18 +27,18 @@ export default function SettingsDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="text-gray-600 hover:text-indigo-600"
+        className="text-gray-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400"
         title="Settings"
       >
         <Settings className="w-5 h-5" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-xl z-50">
+        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-xl z-50 dark:border-slate-700 dark:bg-slate-900">
           <div className="py-2">
             <button
               onClick={() => handleNavigate("/profile/edit")}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <User className="w-4 h-4" />
               Edit Profile
@@ -46,7 +46,7 @@ export default function SettingsDropdown() {
 
             <button
               onClick={() => handleNavigate("/profile/change-password")}
-              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100"
+              className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-t border-gray-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               <Lock className="w-4 h-4" />
               Change Password
