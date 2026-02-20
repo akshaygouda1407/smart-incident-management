@@ -4,6 +4,8 @@ import com.smartims.dto.*;
 import com.smartims.entity.User;
 import com.smartims.enums.Role;
 import com.smartims.exception.AuthException;
+import com.smartims.repository.IssueRepository;
+import com.smartims.repository.ProjectRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.security.JwtService;
 import com.smartims.service.AuditLogService;
@@ -17,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -32,6 +35,8 @@ public class UserServiceImpl implements UserService {
     private final AuditLogService auditLogService;
     private final EmailService emailService;
     private final NotificationInboxService notificationInboxService;
+    private final ProjectRepository projectRepository;
+    private final IssueRepository issueRepository;
 
     @Value("${app.frontend.login-url:http://localhost:5173/login}")
     private String frontendLoginUrl;
@@ -365,6 +370,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long id) {
 
         User user = userRepository.findById(id)
@@ -372,6 +378,25 @@ public class UserServiceImpl implements UserService {
 
         // Check access permissions
         validateUserAccess(user);
+
+        // Clear references first to avoid FK constraint failures on delete.
+        var managedProjects = projectRepository.findByManager(user);
+        if (!managedProjects.isEmpty()) {
+            managedProjects.forEach(project -> project.setManager(null));
+            projectRepository.saveAll(managedProjects);
+        }
+
+        var memberProjects = projectRepository.findByMembersContaining(user);
+        if (!memberProjects.isEmpty()) {
+            memberProjects.forEach(project -> project.getMembers().removeIf(member -> member.getId().equals(user.getId())));
+            projectRepository.saveAll(memberProjects);
+        }
+
+        var assignedIssues = issueRepository.findByAssignedEngineer(user);
+        if (!assignedIssues.isEmpty()) {
+            assignedIssues.forEach(issue -> issue.setAssignedEngineer(null));
+            issueRepository.saveAll(assignedIssues);
+        }
 
         userRepository.delete(user);
 
