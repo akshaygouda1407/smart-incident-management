@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { subscribe, removeToast } from "./utils/toast";
 import Toast from "./components/ui/Toast";
 import AppRoutes from "./routes/AppRoutes";
@@ -7,6 +8,13 @@ import { useTheme } from "./context/useTheme";
 function App() {
   const [toasts, setToasts] = useState([]);
   const { theme } = useTheme();
+  const location = useLocation();
+
+  const isAuthLightRoute =
+    location.pathname === "/login" ||
+    location.pathname === "/authentication/register" ||
+    location.pathname === "/forgot-password" ||
+    location.pathname === "/reset-password";
 
   useEffect(() => {
     return subscribe(setToasts);
@@ -34,7 +42,7 @@ function App() {
             <Toast
               toast={toast}
               onClose={removeToast}
-              theme={theme}
+              theme={isAuthLightRoute ? "light" : theme}
             />
           </div>
         ))}

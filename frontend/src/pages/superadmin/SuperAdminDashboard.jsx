@@ -116,22 +116,38 @@ function BarList({ items, emptyText }) {
 
 function StatusDonut({ values, selected, onSelect, isDark }) {
   const total = values.active + values.disabled + values.locked;
-  const r = 52;
-  const c = 2 * Math.PI * r;
   const safeTotal = Math.max(total, 1);
-  const activeLen = (values.active / safeTotal) * c;
-  const disabledLen = (values.disabled / safeTotal) * c;
-  const lockedLen = (values.locked / safeTotal) * c;
+  const center = 70;
+  const radius = 52;
 
-  const selectedValue =
-    selected === "active"
-      ? values.active
-      : selected === "disabled"
-        ? values.disabled
-        : values.locked;
+  const opacityFor = (key) => (!selected || selected === key ? 1 : 0.5);
 
-  const strokeFor = (key) => (selected === key ? 18 : 14);
-  const opacityFor = (key) => (selected === key ? 1 : 0.45);
+  const toXY = (angleDeg, r = radius) => {
+    const a = (Math.PI / 180) * angleDeg;
+    return { x: center + r * Math.cos(a), y: center + r * Math.sin(a) };
+  };
+
+  const sectorPath = (startDeg, endDeg) => {
+    const start = toXY(startDeg);
+    const end = toXY(endDeg);
+    const largeArc = endDeg - startDeg > 180 ? 1 : 0;
+    return `M ${center} ${center} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y} Z`;
+  };
+
+  const slices = [
+    { key: "active", label: "Active", value: values.active, color: "#16a34a" },
+    { key: "disabled", label: "Disabled", value: values.disabled, color: "#f59e0b" },
+    { key: "locked", label: "Locked", value: values.locked, color: "#ef4444" }
+  ];
+  let currentAngle = -90;
+  const pieSlices = slices.map((slice) => {
+    const sweep = (slice.value / safeTotal) * 360;
+    const start = currentAngle;
+    const end = currentAngle + sweep;
+    const mid = start + sweep / 2;
+    currentAngle = end;
+    return { ...slice, start, end, sweep, mid };
+  });
 
   const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
   const textSecondary = isDark ? "#94A3B8" : "#64748B";
@@ -164,63 +180,46 @@ function StatusDonut({ values, selected, onSelect, isDark }) {
   return (
     <div className="flex flex-col items-center gap-6 md:flex-row md:items-center">
       <div className="relative h-52 w-52">
-        <svg viewBox="0 0 140 140" className="h-52 w-52 -rotate-90">
-          <circle cx="70" cy="70" r={r} fill="none" stroke="#eef2ff" strokeWidth="14" />
-          {values.active > 0 && (
-            <circle
-              cx="70"
-              cy="70"
-              r={r}
-              fill="none"
-              stroke="#16a34a"
-              strokeWidth={strokeFor("active")}
-              strokeDasharray={`${activeLen} ${c - activeLen}`}
-              strokeLinecap="round"
-              className="cursor-pointer transition-all"
-              opacity={opacityFor("active")}
-              onClick={() => onSelect("active")}
-            />
-          )}
-          {values.disabled > 0 && (
-            <circle
-              cx="70"
-              cy="70"
-              r={r}
-              fill="none"
-              stroke="#f59e0b"
-              strokeWidth={strokeFor("disabled")}
-              strokeDasharray={`${disabledLen} ${c - disabledLen}`}
-              strokeDashoffset={-activeLen}
-              strokeLinecap="round"
-              className="cursor-pointer transition-all"
-              opacity={opacityFor("disabled")}
-              onClick={() => onSelect("disabled")}
-            />
-          )}
-          {values.locked > 0 && (
-            <circle
-              cx="70"
-              cy="70"
-              r={r}
-              fill="none"
-              stroke="#ef4444"
-              strokeWidth={strokeFor("locked")}
-              strokeDasharray={`${lockedLen} ${c - lockedLen}`}
-              strokeDashoffset={-(activeLen + disabledLen)}
-              strokeLinecap="round"
-              className="cursor-pointer transition-all"
-              opacity={opacityFor("locked")}
-              onClick={() => onSelect("locked")}
-            />
-          )}
+        <svg viewBox="0 0 140 140" className="h-52 w-52">
+          {pieSlices.map((slice) => {
+            if (slice.value <= 0 || slice.sweep <= 0) return null;
+            const isSelected = selected === slice.key;
+            const offset = isSelected ? 5 : 0;
+            const shift = toXY(slice.mid, offset);
+            const tx = shift.x - center;
+            const ty = shift.y - center;
+            const fullCircle = slice.sweep >= 359.999;
+            return (
+              fullCircle ? (
+                <circle
+                  key={slice.key}
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  fill={slice.color}
+                  className="cursor-pointer transition-all"
+                  opacity={opacityFor(slice.key)}
+                  onClick={() => onSelect(slice.key)}
+                >
+                  <title>{`${slice.label}: ${slice.value} user${slice.value === 1 ? "" : "s"}`}</title>
+                </circle>
+              ) : (
+                <path
+                  key={slice.key}
+                  d={sectorPath(slice.start, slice.end)}
+                  fill={slice.color}
+                  stroke={slice.color}
+                  className="cursor-pointer transition-all"
+                  opacity={opacityFor(slice.key)}
+                  transform={`translate(${tx} ${ty})`}
+                  onClick={() => onSelect(slice.key)}
+                >
+                  <title>{`${slice.label}: ${slice.value} user${slice.value === 1 ? "" : "s"}`}</title>
+                </path>
+              )
+            );
+          })}
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-center">
-          <div>
-            <p className="text-xs uppercase tracking-wide" style={{ color: textSecondary }}>{selected}</p>
-            <p className="text-3xl font-bold" style={{ color: textPrimary }}>{selectedValue}</p>
-            <p className="text-xs" style={{ color: textSecondary }}>of {total}</p>
-          </div>
-        </div>
       </div>
 
       <div className="w-full max-w-[220px] space-y-2 text-sm">
@@ -304,7 +303,7 @@ export default function SuperAdminDashboard() {
 
   const [logWindow, setLogWindow] = useState("7D");
   const [logSearch, setLogSearch] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("active");
+  const [selectedStatus, setSelectedStatus] = useState(null);
 
   const fetchData = async ({ silent = false } = {}) => {
     if (!silent) setLoading(true);
@@ -514,7 +513,7 @@ export default function SuperAdminDashboard() {
                 <StatusDonut
                   values={statusValues}
                   selected={selectedStatus}
-                  onSelect={setSelectedStatus}
+                  onSelect={(key) => setSelectedStatus((prev) => (prev === key ? null : key))}
                   isDark={isDark}
                 />
               </div>
