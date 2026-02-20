@@ -23,6 +23,8 @@ import PlaceholderPage from "../pages/common/PlaceholderPage";
 import AdminUserManagement from "../pages/admin/AdminUserManagement";
 import AdminProjects from "../pages/admin/AdminProjects";
 import AdminSlaConfiguration from "../pages/admin/AdminSlaConfiguration";
+import AdminSlaMonitoring from "../pages/admin/AdminSlaMonitoring";
+import AdminReports from "../pages/admin/AdminReports";
 import SuperAdminDashboard from "../pages/superadmin/SuperAdminDashboard";
 import SuperAdminAddCompanyAdmin from "../pages/superadmin/SuperAdminAddCompanyAdmin";
 import SuperAdminUsers from "../pages/superadmin/SuperAdminUsers";
@@ -139,7 +141,7 @@ export default function AppRoutes() {
           path="/admin/sla-monitoring"
           element={
             <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <PlaceholderPage title="Admin · SLA Monitoring" />
+              <AdminSlaMonitoring />
             </ProtectedRoute>
           }
         />
@@ -163,7 +165,7 @@ export default function AppRoutes() {
           path="/admin/reports"
           element={
             <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <PlaceholderPage title="Admin · Reports" />
+              <AdminReports />
             </ProtectedRoute>
           }
         />
@@ -321,5 +323,8 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+
+
 
 
