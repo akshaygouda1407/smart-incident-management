@@ -32,6 +32,7 @@ function formatStatus(value) {
 
 function statusBadgeClass(status) {
   const key = String(status || "").toUpperCase();
+  if (key === "CREATED") return "border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200";
   if (key === "OPEN") return "border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200";
   if (key === "IN_PROGRESS") return "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200";
   if (key === "RESOLVED") return "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200";
@@ -92,7 +93,7 @@ export default function UserDashboard() {
 
   const summary = useMemo(() => {
     const total = issues.length;
-    const open = issues.filter((issue) => issue?.status === "OPEN").length;
+    const open = issues.filter((issue) => issue?.status === "CREATED" || issue?.status === "OPEN").length;
     const inProgress = issues.filter((issue) => issue?.status === "IN_PROGRESS").length;
     const resolved = issues.filter(
       (issue) => issue?.status === "RESOLVED" || issue?.status === "CLOSED"
@@ -136,7 +137,7 @@ export default function UserDashboard() {
           icon={AlertCircle}
           label="Open"
           value={summary.open + summary.inProgress}
-          hint="Open and in progress"
+          hint="Created, open and in progress"
           tone="rose"
         />
         <StatCard

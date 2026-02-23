@@ -18,6 +18,8 @@ public class IssueResponse {
     private String status;
     private String createdBy;
     private String createdByName;
+    private Long assignedEngineerId;
+    private String assignedEngineerName;
 
     private Long projectId;
     private String projectName;

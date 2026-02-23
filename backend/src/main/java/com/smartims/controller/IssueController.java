@@ -94,6 +94,35 @@ public class IssueController {
         );
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ApiResponse<IssueResponse> updateIssueDetails(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateIssueDetailsRequest request) {
+
+        return ApiResponse.success(
+                "Issue updated successfully",
+                issueService.updateIssueDetails(
+                        id,
+                        request.getTitle(),
+                        request.getDescription(),
+                        request.getSeverity()
+                )
+        );
+    }
+
+    @PutMapping("/{id}/severity")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
+    public ApiResponse<IssueResponse> updateIssueSeverity(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateIssueSeverityRequest request) {
+
+        return ApiResponse.success(
+                "Issue severity updated successfully",
+                issueService.updateIssueSeverity(id, request.getSeverity())
+        );
+    }
+
     @PutMapping("/{issueId}/assign/{engineerId}")
     @PreAuthorize("hasRole('MANAGER')")
     public ApiResponse<Void> assignEngineer(
@@ -109,6 +138,7 @@ public class IssueController {
     }
 
     @PostMapping("/{id}/assign")
+    @PreAuthorize("hasRole('MANAGER')")
     public ApiResponse<IssueResponse> assignIssue(
             @PathVariable Long id,
             @RequestBody AssignIssueRequest request) {
@@ -116,6 +146,24 @@ public class IssueController {
         return ApiResponse.success(
                 "Issue assigned successfully",
                 issueService.assignIssue(id, request.getEngineerId())
+        );
+    }
+
+    @GetMapping("/manager/assignment-board")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ApiResponse<ManagerAssignmentBoardResponse> getManagerAssignmentBoard() {
+        return ApiResponse.success(
+                "Assignment board fetched successfully",
+                issueService.getManagerAssignmentBoard()
+        );
+    }
+
+    @PostMapping("/manager/auto-assign-unassigned")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ApiResponse<ManagerAssignmentBoardResponse> autoAssignUnassignedForManager() {
+        return ApiResponse.success(
+                "Unassigned issues auto-assigned successfully",
+                issueService.autoAssignUnassignedIssuesForManager()
         );
     }
 

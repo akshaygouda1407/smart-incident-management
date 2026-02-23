@@ -5,7 +5,7 @@ import { getAllIssues } from "../../api/issuesApi";
 import { getAllProjects } from "../../api/projectApi";
 import { showError } from "../../utils/toast";
 
-const STATUS_OPTIONS = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const STATUS_OPTIONS = ["CREATED", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const SEVERITY_OPTIONS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 function getApiMessage(err) {
@@ -35,6 +35,7 @@ function formatStatus(value) {
 
 function statusBadgeClass(status) {
   const key = String(status || "").toUpperCase();
+  if (key === "CREATED") return "border-indigo-300 bg-indigo-100 text-indigo-700 dark:border-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200";
   if (key === "OPEN") return "border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-900/30 dark:text-blue-200";
   if (key === "IN_PROGRESS") return "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200";
   if (key === "RESOLVED") return "border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200";

@@ -124,14 +124,9 @@ public class ProjectServiceImpl implements ProjectService {
         if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
             projects = projectRepository.findAll();
         }
-        // ADMIN can see only their company's projects
+        // ADMIN can see all projects
         else if (currentUser.getRole().name().equals("ADMIN")) {
-            String company = currentUser.getCompany();
-            if (company == null || company.isBlank()) {
-                projects = projectRepository.findAll();
-            } else {
-                projects = projectRepository.findByCompany(company);
-            }
+            projects = projectRepository.findAll();
         }
         // MANAGER can see only their projects
         else if (currentUser.getRole().name().equals("MANAGER")) {

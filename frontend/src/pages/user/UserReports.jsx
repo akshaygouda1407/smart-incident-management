@@ -47,7 +47,7 @@ function formatDateTime(value) {
   return `${datePart} ${timePart}`;
 }
 
-const ISSUE_STATUS_ORDER = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const ISSUE_STATUS_ORDER = ["CREATED", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 
 function StatCard({ icon: Icon, label, value, tone }) {
   const toneMap = {
@@ -101,7 +101,7 @@ export default function UserReports() {
 
   const summary = useMemo(() => {
     const total = issues.length;
-    const open = issues.filter((i) => i?.status === "OPEN").length;
+    const open = issues.filter((i) => i?.status === "CREATED" || i?.status === "OPEN").length;
     const inProgress = issues.filter((i) => i?.status === "IN_PROGRESS").length;
     const resolved = issues.filter((i) => i?.status === "RESOLVED" || i?.status === "CLOSED").length;
     const urgent = issues.filter((i) => i?.severity === "HIGH" || i?.severity === "CRITICAL").length;
@@ -184,7 +184,7 @@ export default function UserReports() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard icon={FolderKanban} label="Total Issues" value={summary.total} tone="indigo" />
-        <StatCard icon={AlertCircle} label="Open" value={summary.open} tone="rose" />
+        <StatCard icon={AlertCircle} label="Created/Open" value={summary.open} tone="rose" />
         <StatCard icon={Clock3} label="In Progress" value={summary.inProgress} tone="amber" />
         <StatCard icon={CheckCircle2} label="Resolved/Closed" value={summary.resolved} tone="emerald" />
         <StatCard icon={AlertCircle} label="High/Critical" value={summary.urgent} tone="rose" />

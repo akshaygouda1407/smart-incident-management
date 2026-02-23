@@ -18,6 +18,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import EngineerDashboard from "../pages/engineer/EngineerDashboard";
+import EngineerProjectDetails from "../pages/engineer/EngineerProjectDetails";
 import UserDashboard from "../pages/user/UserDashboard";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import AdminUserManagement from "../pages/admin/AdminUserManagement";
@@ -36,6 +37,13 @@ import UserCreateIssue from "../pages/user/UserCreateIssue";
 import UserIssues from "../pages/user/UserIssues";
 import UserReports from "../pages/user/UserReports";
 import UserIssueDetails from "../pages/user/UserIssueDetails";
+import ManagerAssignedProjects from "../pages/manager/ManagerAssignedProjects";
+import ManagerIssues from "../pages/manager/ManagerIssues";
+import Team from "../pages/manager/Team";
+import AssignIssues from "../pages/manager/AssignIssues";
+import ManagerSlaMonitoring from "../pages/manager/ManagerSlaMonitoring";
+import ManagerWorkload from "../pages/manager/ManagerWorkload";
+import ManagerReports from "../pages/manager/ManagerReports";
 
 export default function AppRoutes() {
   return (
@@ -179,7 +187,15 @@ export default function AppRoutes() {
           path="/manager/projects"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Assigned Projects" />
+              <ManagerAssignedProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/projects/:projectId"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <ManagerAssignedProjects />
             </ProtectedRoute>
           }
         />
@@ -187,7 +203,15 @@ export default function AppRoutes() {
           path="/manager/issues"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Issues" />
+              <ManagerIssues />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/manager/issues/:issueId"
+          element={
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <UserIssueDetails />
             </ProtectedRoute>
           }
         />
@@ -195,7 +219,7 @@ export default function AppRoutes() {
           path="/manager/assign-issues"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Assign Issues" />
+              <AssignIssues />
             </ProtectedRoute>
           }
         />
@@ -203,7 +227,7 @@ export default function AppRoutes() {
           path="/manager/sla-monitoring"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · SLA Monitoring" />
+              <ManagerSlaMonitoring />
             </ProtectedRoute>
           }
         />
@@ -211,7 +235,7 @@ export default function AppRoutes() {
           path="/manager/workload"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Workload" />
+              <ManagerWorkload />
             </ProtectedRoute>
           }
         />
@@ -219,7 +243,7 @@ export default function AppRoutes() {
           path="/manager/team-users"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Team Users" />
+              <Team />
             </ProtectedRoute>
           }
         />
@@ -227,7 +251,7 @@ export default function AppRoutes() {
           path="/manager/reports"
           element={
             <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <PlaceholderPage title="Manager · Reports" />
+              <ManagerReports />
             </ProtectedRoute>
           }
         />
@@ -236,7 +260,15 @@ export default function AppRoutes() {
           path="/engineer/project"
           element={
             <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · Project Details" />
+              <EngineerProjectDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/engineer/project/:projectId"
+          element={
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <EngineerProjectDetails />
             </ProtectedRoute>
           }
         />
@@ -344,6 +376,17 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

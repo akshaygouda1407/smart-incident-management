@@ -388,6 +388,7 @@ export default function AdminSlaMonitoring() {
               <option value="ON_TRACK">On Track</option>
               <option value="AT_RISK">At Risk</option>
               <option value="BREACHED">Breached</option>
+              <option value="NOT_STARTED">Not Started</option>
               <option value="UNKNOWN">Unavailable</option>
             </select>
           </div>

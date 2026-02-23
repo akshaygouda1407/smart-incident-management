@@ -12,3 +12,4 @@ public class SmartImsApplication {
 		SpringApplication.run(SmartImsApplication.class, args);
 	}
 }
+	

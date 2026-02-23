@@ -217,16 +217,27 @@ export default function AdminProjects() {
   const openEdit = (project) => {
     setEditing(project);
 
-    // Map stored emails back to user IDs for manager and members
-    const managerUser = users.find((u) => u.email === project.managerName);
+    // Backend returns names in managerName/memberNames and IDs in memberDetails.
+    const managerUser =
+      users.find((u) => String(u.fullName || "").trim() === String(project.managerName || "").trim()) ||
+      users.find((u) => String(u.email || "").trim() === String(project.managerName || "").trim()) ||
+      null;
     const managerId = managerUser ? String(managerUser.id) : "";
 
-    const memberIds =
-      Array.isArray(project.memberNames) && project.memberNames.length > 0
-        ? users
-            .filter((u) => project.memberNames.includes(u.email))
-            .map((u) => String(u.id))
-        : [];
+    let memberIds = [];
+    if (Array.isArray(project.memberDetails) && project.memberDetails.length > 0) {
+      memberIds = project.memberDetails
+        .map((m) => (m?.id != null ? String(m.id) : ""))
+        .filter(Boolean);
+    } else if (Array.isArray(project.memberNames) && project.memberNames.length > 0) {
+      memberIds = users
+        .filter(
+          (u) =>
+            project.memberNames.includes(u.fullName) ||
+            project.memberNames.includes(u.email)
+        )
+        .map((u) => String(u.id));
+    }
 
     setForm({
       name: project?.name || "",

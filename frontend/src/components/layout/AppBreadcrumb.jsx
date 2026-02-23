@@ -38,11 +38,14 @@ export default function AppBreadcrumb() {
     (SIDEBAR_CONFIG?.[role] || []).find((item) => item.label === "Dashboard")?.path || "/";
 
   const isUserProjectDetails = /^\/user\/project\/[^/]+$/.test(location.pathname);
+  const isManagerProjectDetails = /^\/manager\/projects\/[^/]+$/.test(location.pathname);
+  const isEngineerProjectDetails = /^\/engineer\/project\/[^/]+$/.test(location.pathname);
   const isUserIssueDetails = /^\/user\/issues\/[^/]+$/.test(location.pathname);
-  const projectIdFromPath = isUserProjectDetails
+  const isManagerIssueDetails = /^\/manager\/issues\/[^/]+$/.test(location.pathname);
+  const projectIdFromPath = isUserProjectDetails || isManagerProjectDetails || isEngineerProjectDetails
     ? location.pathname.split("/").filter(Boolean).pop()
     : null;
-  const issueIdFromPath = isUserIssueDetails
+  const issueIdFromPath = isUserIssueDetails || isManagerIssueDetails
     ? location.pathname.split("/").filter(Boolean).pop()
     : null;
   const projectNameFromState = location.state?.projectName;
@@ -76,6 +79,30 @@ export default function AppBreadcrumb() {
             <ChevronRight className="h-4 w-4 text-gray-400" />
             <span className="font-semibold text-gray-900">{projectLabel}</span>
           </>
+        ) : isManagerProjectDetails ? (
+          <>
+            <button
+              type="button"
+              onClick={() => navigate("/manager/projects")}
+              className="font-medium text-gray-600 hover:text-indigo-600"
+            >
+              Assigned Projects
+            </button>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="font-semibold text-gray-900">{projectLabel}</span>
+          </>
+        ) : isEngineerProjectDetails ? (
+          <>
+            <button
+              type="button"
+              onClick={() => navigate("/engineer/project")}
+              className="font-medium text-gray-600 hover:text-indigo-600"
+            >
+              Project Details
+            </button>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="font-semibold text-gray-900">{projectLabel}</span>
+          </>
         ) : isUserIssueDetails ? (
           <>
             <button
@@ -84,6 +111,18 @@ export default function AppBreadcrumb() {
               className="font-medium text-gray-600 hover:text-indigo-600"
             >
               My Issues
+            </button>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="font-semibold text-gray-900">{`ISS-${String(issueIdFromPath).padStart(3, "0")}`}</span>
+          </>
+        ) : isManagerIssueDetails ? (
+          <>
+            <button
+              type="button"
+              onClick={() => navigate("/manager/issues")}
+              className="font-medium text-gray-600 hover:text-indigo-600"
+            >
+              Issues
             </button>
             <ChevronRight className="h-4 w-4 text-gray-400" />
             <span className="font-semibold text-gray-900">{`ISS-${String(issueIdFromPath).padStart(3, "0")}`}</span>

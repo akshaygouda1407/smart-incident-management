@@ -94,6 +94,7 @@ function InfoCard({ label, value }) {
 
 function badgeClassByStatus(status) {
   const normalized = String(status || "").toUpperCase();
+  if (normalized === "CREATED") return "bg-indigo-50 text-indigo-700 border-indigo-200";
   if (normalized === "OPEN") return "bg-blue-50 text-blue-700 border-blue-200";
   if (normalized === "IN_PROGRESS") return "bg-amber-50 text-amber-700 border-amber-200";
   if (normalized === "RESOLVED") return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -236,7 +237,15 @@ export default function UserIssueDetails() {
                 <p className="mt-1 text-xs text-gray-500">Timer starts when engineer clicks Start (In Progress).</p>
               )}
             </div>
-            <InfoCard label="Assigned To" value="-" />
+            <InfoCard
+              label="Assigned To"
+              value={
+                issue.assignedEngineerName ||
+                issue.assignedToName ||
+                issue.assignedTo ||
+                "-"
+              }
+            />
             <InfoCard label="Severity" value={issue.severity || "-"} />
             <InfoCard label="Project" value={issue.projectName || "-"} />
             <InfoCard label="Last Updated" value={formatDateTime(issue.createdAt)} />

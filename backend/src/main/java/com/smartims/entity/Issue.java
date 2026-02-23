@@ -53,12 +53,16 @@ public class Issue {
     private LocalDateTime slaDueTime;
     private boolean slaBreached;
     private Boolean escalated;
+    private Boolean triaged;
 
 
     @PrePersist
     void onCreate() {
         this.slaBreached = false;
         this.escalated = false;
+        if (this.triaged == null) {
+            this.triaged = false;
+        }
     }
 
 }

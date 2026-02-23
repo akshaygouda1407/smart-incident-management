@@ -1,21 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, RefreshCcw } from "lucide-react";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCcw } from "lucide-react";
 import { getAllUsers } from "../../api/userApi";
 import { getAllProjects } from "../../api/projectApi";
 import { getAllIssues, getIssueSlaStatus } from "../../api/issuesApi";
 import { getEngineerWorkload, getManagerWorkload } from "../../api/workloadApi";
-import { showError, showSuccess } from "../../utils/toast";
+import { showError } from "../../utils/toast";
 
 const REPORT_TABS = [
   { key: "workload", label: "Workload" },
   { key: "issues", label: "Issue Report" },
   { key: "sla", label: "SLA Report" }
 ];
-const ISSUE_STATUS_ORDER = ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
+const ISSUE_STATUS_ORDER = ["CREATED", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
 const PRIORITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-const SLA_STATUS_ORDER = ["ON_TRACK", "AT_RISK", "BREACHED"];
+const SLA_STATUS_ORDER = ["NOT_STARTED", "ON_TRACK", "AT_RISK", "BREACHED"];
 
 function getApiMessage(err) {
   return (
@@ -63,186 +61,6 @@ function formatMinutes(value) {
   const m = abs % 60;
   if (h === 0) return `${sign}${m}m`;
   return `${sign}${h}h ${m}m`;
-}
-
-async function renderNodeToPdf(node, title, filename) {
-  const rootId = `report-export-${Date.now()}`;
-  node.setAttribute("data-export-root-id", rootId);
-  let canvas;
-  try {
-    const colorCache = new Map();
-    const toSafeRgb = (raw) => {
-      const value = String(raw || "").trim();
-      if (!value) return value;
-      if (colorCache.has(value)) return colorCache.get(value);
-      if (
-        value === "none" ||
-        value === "transparent" ||
-        value === "currentcolor" ||
-        value === "initial" ||
-        value === "inherit" ||
-        value === "unset"
-      ) {
-        colorCache.set(value, value);
-        return value;
-      }
-      const probe = document.createElement("span");
-      probe.style.color = "#000000";
-      probe.style.position = "fixed";
-      probe.style.left = "-99999px";
-      probe.style.top = "0";
-      probe.style.pointerEvents = "none";
-      probe.style.color = value;
-      document.body.appendChild(probe);
-      const resolved = window.getComputedStyle(probe).color || "#000000";
-      document.body.removeChild(probe);
-      colorCache.set(value, resolved);
-      return resolved;
-    };
-
-    canvas = await html2canvas(node, {
-      backgroundColor: "#ffffff",
-      scale: 1.5,
-      useCORS: true,
-      ignoreElements: (el) => el?.getAttribute?.("data-report-exclude") === "true",
-      onclone: (clonedDoc) => {
-        const clonedRoot = clonedDoc.querySelector(`[data-export-root-id="${rootId}"]`);
-        if (!clonedRoot) return;
-
-        const srcNodes = [node, ...Array.from(node.querySelectorAll("*"))];
-        const dstNodes = [clonedRoot, ...Array.from(clonedRoot.querySelectorAll("*"))];
-        const count = Math.min(srcNodes.length, dstNodes.length);
-        const colorLikeProp = (name) =>
-          name.includes("color") ||
-          name === "fill" ||
-          name === "stroke" ||
-          name === "stop-color" ||
-          name === "flood-color" ||
-          name === "lighting-color";
-        const hasUnsupportedColor = (value) =>
-          /oklch\(|lch\(|lab\(|color\(/i.test(String(value || ""));
-
-        // Prevent stylesheet parsing in clone. We'll snapshot computed styles inline for exported subtree.
-        clonedDoc
-          .querySelectorAll("style, link[rel='stylesheet']")
-          .forEach((el) => el.parentNode?.removeChild(el));
-
-        for (let i = 0; i < count; i += 1) {
-          const src = srcNodes[i];
-          const dst = dstNodes[i];
-          const cs = window.getComputedStyle(src);
-
-          for (let p = 0; p < cs.length; p += 1) {
-            const prop = cs[p];
-            if (!prop || prop.startsWith("--")) continue;
-            const priority = cs.getPropertyPriority(prop);
-            let val = cs.getPropertyValue(prop);
-            if (!val) continue;
-            if (hasUnsupportedColor(val)) {
-              if (colorLikeProp(prop)) {
-                val = toSafeRgb(val);
-              } else {
-                continue;
-              }
-            }
-            dst.style.setProperty(prop, val, priority);
-          }
-
-          // Force resolved colors so html2canvas doesn't parse oklch() tokens from stylesheet rules.
-          dst.style.color = toSafeRgb(cs.color);
-          dst.style.backgroundColor = toSafeRgb(cs.backgroundColor);
-          dst.style.borderColor = toSafeRgb(cs.borderColor);
-          dst.style.borderTopColor = toSafeRgb(cs.borderTopColor);
-          dst.style.borderRightColor = toSafeRgb(cs.borderRightColor);
-          dst.style.borderBottomColor = toSafeRgb(cs.borderBottomColor);
-          dst.style.borderLeftColor = toSafeRgb(cs.borderLeftColor);
-          dst.style.outlineColor = toSafeRgb(cs.outlineColor);
-          dst.style.caretColor = toSafeRgb(cs.caretColor);
-          dst.style.textDecorationColor = toSafeRgb(cs.textDecorationColor);
-          dst.style.fill = toSafeRgb(cs.fill);
-          dst.style.stroke = toSafeRgb(cs.stroke);
-          dst.style.stopColor = toSafeRgb(cs.stopColor);
-          dst.style.floodColor = toSafeRgb(cs.floodColor);
-          dst.style.lightingColor = toSafeRgb(cs.lightingColor);
-          dst.style.backgroundImage = "none";
-          dst.style.filter = "none";
-          dst.style.backdropFilter = "none";
-          dst.style.boxShadow = "none";
-        }
-      }
-    });
-  } finally {
-    node.removeAttribute("data-export-root-id");
-  }
-
-  const imgData = canvas.toDataURL("image/png");
-  const pdf = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: "a4"
-  });
-
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const pageHeight = pdf.internal.pageSize.getHeight();
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-  let heightLeft = imgHeight;
-  let position = 0;
-
-  pdf.setProperties({ title });
-  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-  heightLeft -= pageHeight;
-
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-  }
-
-  pdf.save(filename);
-}
-
-async function downloadNodeAsPdf(node, title, filename) {
-  if (!node) {
-    return { ok: false, reason: "report section not found" };
-  }
-
-  try {
-    await renderNodeToPdf(node, title, filename);
-    return { ok: true };
-  } catch (primaryErr) {
-    try {
-      const clone = node.cloneNode(true);
-      clone.querySelectorAll("[data-report-exclude='true']").forEach((el) => el.remove());
-      const wrapper = document.createElement("div");
-      wrapper.style.position = "fixed";
-      wrapper.style.left = "-100000px";
-      wrapper.style.top = "0";
-      wrapper.style.width = `${Math.max(node.scrollWidth || node.clientWidth, 1200)}px`;
-      wrapper.style.background = "#ffffff";
-      wrapper.style.padding = "16px";
-      wrapper.appendChild(clone);
-      document.body.appendChild(wrapper);
-      try {
-        await renderNodeToPdf(wrapper, title, filename);
-        return { ok: true };
-      } finally {
-        document.body.removeChild(wrapper);
-      }
-    } catch (fallbackErr) {
-      console.error("PDF export failed (primary):", primaryErr);
-      console.error("PDF export failed (fallback):", fallbackErr);
-      return {
-        ok: false,
-        reason:
-          fallbackErr?.message ||
-          primaryErr?.message ||
-          "canvas/pdf rendering failed"
-      };
-    }
-  }
 }
 
 function StatCard({ label, value, hint, onClick, active }) {
@@ -313,7 +131,10 @@ function IssueStatusBarChart({ items, selectedKey, onSelect }) {
           <p className="text-sm text-gray-500">No status data available.</p>
         ) : (
           <>
-            <div className="grid h-64 grid-cols-12 items-end gap-3 rounded-lg border border-dashed border-gray-200 p-4">
+            <div
+              className="grid h-64 items-end gap-3 rounded-lg border border-dashed border-gray-200 p-4"
+              style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}
+            >
               {items.map((item, idx) => {
                 const h = Math.max((item.value / max) * 100, item.value > 0 ? 8 : 0);
                 const isSelected = selectedKey === item.key;
@@ -323,7 +144,7 @@ function IssueStatusBarChart({ items, selectedKey, onSelect }) {
                     type="button"
                     key={item.label}
                     onClick={() => onSelect(item.key)}
-                    className="col-span-3 flex h-full flex-col justify-end text-left"
+                    className="flex h-full flex-col justify-end text-left"
                   >
                     <div className="mb-2 text-center text-xs font-semibold text-gray-600">{item.value}</div>
                     <div
@@ -337,7 +158,7 @@ function IssueStatusBarChart({ items, selectedKey, onSelect }) {
                 );
               })}
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
               {items.map((item, idx) => (
                 <div key={item.label} className="flex items-center gap-2 text-gray-700">
                   <span
@@ -459,56 +280,7 @@ function PriorityPieChart({ items, selectedKey, onSelect }) {
   );
 }
 
-function SlaTrendBarChart({ items, selectedKey, onSelect }) {
-  const max = Math.max(1, ...items.map((i) => i.total));
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
-      <h3 className="text-3xl font-semibold text-gray-900">SLA Trend (Monthly)</h3>
-      <div className="mt-5">
-        {items.length === 0 ? (
-          <p className="text-sm text-gray-500">No SLA trend data available yet.</p>
-        ) : (
-          <>
-            <div className="grid h-64 grid-cols-12 items-end gap-3 rounded-lg border border-dashed border-gray-200 p-4">
-              {items.map((item) => {
-                const h = Math.max((item.total / max) * 100, item.total > 0 ? 8 : 0);
-                const isSelected = selectedKey === item.month;
-                const isDimmed = selectedKey && !isSelected;
-                return (
-                  <button
-                    type="button"
-                    key={item.month}
-                    onClick={() => onSelect(item.month)}
-                    className="col-span-2 flex h-full flex-col justify-end text-left"
-                  >
-                    <div className="mb-2 text-center text-xs font-semibold text-gray-600">{item.total}</div>
-                    <div
-                      className={`rounded-t-md bg-indigo-500 transition-all ${isSelected ? "ring-2 ring-indigo-400" : ""} ${isDimmed ? "opacity-40" : "opacity-100"}`}
-                      style={{ height: `${h}%` }}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-700 md:grid-cols-6">
-              {items.map((item) => (
-                <div key={item.month} className="truncate">
-                  {item.month}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function AdminReports() {
-  const workloadSectionRef = useRef(null);
-  const issueSectionRef = useRef(null);
-  const slaSectionRef = useRef(null);
-
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
   const [issues, setIssues] = useState([]);
@@ -523,7 +295,6 @@ export default function AdminReports() {
   const [selectedIssueStatus, setSelectedIssueStatus] = useState("");
   const [selectedPriority, setSelectedPriority] = useState("");
   const [selectedSlaStatus, setSelectedSlaStatus] = useState("");
-  const [selectedSlaMonth, setSelectedSlaMonth] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -648,16 +419,23 @@ export default function AdminReports() {
 
   const issueProjectOptions = useMemo(() => {
     const set = new Map();
+    projects.forEach((project) => {
+      if (project?.id != null) {
+        const pid = String(project.id);
+        set.set(pid, project?.name || project?.projectName || `Project #${pid}`);
+      }
+    });
     issues.forEach((issue) => {
-      if (issue?.projectId != null) {
-        const pid = String(issue.projectId);
+      if (issue?.projectId == null) return;
+      const pid = String(issue.projectId);
+      if (!set.has(pid)) {
         set.set(pid, issue?.projectName || projectNameById.get(pid) || `Project #${pid}`);
       }
     });
     return Array.from(set.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [issues, projectNameById]);
+  }, [projects, issues, projectNameById]);
 
   const projectScopedIssues = useMemo(() => {
     if (issueProjectFilter === "ALL") return issues;
@@ -719,23 +497,21 @@ export default function AdminReports() {
   const slaKnownIssues = useMemo(
     () =>
       issuesWithSla.filter((issue) =>
-        ["ON_TRACK", "AT_RISK", "BREACHED"].includes(String(issue?.slaStatus || "").toUpperCase())
+        ["NOT_STARTED", "ON_TRACK", "AT_RISK", "BREACHED"].includes(
+          String(issue?.slaStatus || "").toUpperCase()
+        )
       ),
     [issuesWithSla]
   );
 
   const filteredSlaIssues = useMemo(() => {
     return slaKnownIssues.filter((issue) => {
-      const byStatus = selectedSlaStatus ? issue.slaStatus === selectedSlaStatus : true;
-      const monthKey = issue?.createdAt
-        ? `${new Date(issue.createdAt).getFullYear()}-${String(new Date(issue.createdAt).getMonth() + 1).padStart(2, "0")}`
-        : "";
-      const byMonth = selectedSlaMonth ? monthKey === selectedSlaMonth : true;
-      return byStatus && byMonth;
+      return selectedSlaStatus ? issue.slaStatus === selectedSlaStatus : true;
     });
-  }, [slaKnownIssues, selectedSlaStatus, selectedSlaMonth]);
+  }, [slaKnownIssues, selectedSlaStatus]);
 
   const slaSummary = useMemo(() => {
+    const notStarted = filteredSlaIssues.filter((i) => i.slaStatus === "NOT_STARTED").length;
     const onTrack = filteredSlaIssues.filter((i) => i.slaStatus === "ON_TRACK").length;
     const atRisk = filteredSlaIssues.filter((i) => i.slaStatus === "AT_RISK").length;
     const breached = filteredSlaIssues.filter((i) => i.slaStatus === "BREACHED").length;
@@ -759,43 +535,12 @@ export default function AdminReports() {
             allocatedSamples.reduce((sum, value) => sum + value, 0) / allocatedSamples.length
           );
 
-    return { onTrack, atRisk, breached, total, compliance, avgAllocatedMin };
+    return { notStarted, onTrack, atRisk, breached, total, compliance, avgAllocatedMin };
   }, [filteredSlaIssues]);
-
-  const slaTrend = useMemo(() => {
-    const bucket = new Map();
-    const base = selectedSlaStatus
-      ? slaKnownIssues.filter((i) => i.slaStatus === selectedSlaStatus)
-      : slaKnownIssues;
-    base.forEach((issue) => {
-      const created = issue?.createdAt ? new Date(issue.createdAt) : null;
-      if (!created || Number.isNaN(created.getTime())) return;
-      const monthKey = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, "0")}`;
-      const current = bucket.get(monthKey) || { month: monthKey, total: 0, onTrack: 0, breached: 0 };
-      current.total += 1;
-      if (issue.slaStatus === "ON_TRACK") current.onTrack += 1;
-      if (issue.slaStatus === "BREACHED") current.breached += 1;
-      bucket.set(monthKey, current);
-    });
-    return Array.from(bucket.values())
-      .sort((a, b) => a.month.localeCompare(b.month))
-      .map((item) => ({
-        ...item,
-        compliance: item.total === 0 ? 0 : Number(((item.onTrack / item.total) * 100).toFixed(2))
-      }));
-  }, [slaKnownIssues, selectedSlaStatus]);
 
   const slaStatusDistribution = useMemo(() => {
     const map = new Map();
-    const base = selectedSlaMonth
-      ? slaKnownIssues.filter((issue) => {
-          const created = issue?.createdAt ? new Date(issue.createdAt) : null;
-          if (!created || Number.isNaN(created.getTime())) return false;
-          const month = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, "0")}`;
-          return month === selectedSlaMonth;
-        })
-      : slaKnownIssues;
-    base.forEach((issue) => {
+    slaKnownIssues.forEach((issue) => {
       const key = String(issue?.slaStatus || "UNKNOWN").toUpperCase();
       map.set(key, (map.get(key) || 0) + 1);
     });
@@ -804,7 +549,7 @@ export default function AdminReports() {
       label: formatStatus(status),
       value: map.get(status) || 0
     }));
-  }, [slaKnownIssues, selectedSlaMonth]);
+  }, [slaKnownIssues]);
 
   const workloadRows = workloadView === "MANAGER" ? managerWorkloads : employeeWorkloads;
   const filteredWorkloadRows = useMemo(() => {
@@ -817,26 +562,6 @@ export default function AdminReports() {
     const exists = workloadRows.some((row) => String(row.id) === String(selectedWorkloadUserId));
     if (!exists) setSelectedWorkloadUserId("");
   }, [workloadRows, selectedWorkloadUserId]);
-
-  const handleDownload = async () => {
-    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-    const map = {
-      workload: { ref: workloadSectionRef, title: "Workload Report", file: `workload-report-${stamp}.pdf` },
-      issues: { ref: issueSectionRef, title: "Issue Report", file: `issue-report-${stamp}.pdf` },
-      sla: { ref: slaSectionRef, title: "SLA Report", file: `sla-report-${stamp}.pdf` }
-    };
-    const target = map[activeTab];
-    const result = await downloadNodeAsPdf(
-      target?.ref?.current,
-      target?.title || "Report",
-      target?.file || `report-${stamp}.pdf`
-    );
-    if (result.ok) {
-      showSuccess("PDF downloaded");
-    } else {
-      showError("Unable to download, please try again after some time");
-    }
-  };
 
   return (
     <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-6">
@@ -856,14 +581,6 @@ export default function AdminReports() {
           >
             <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleDownload()}
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-          >
-            <Download className="h-4 w-4" />
-            Download Report
           </button>
         </div>
       </div>
@@ -888,7 +605,7 @@ export default function AdminReports() {
       </div>
 
       {activeTab === "workload" && (
-        <div className="space-y-4" ref={workloadSectionRef}>
+        <div className="space-y-4">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             <StatCard label="Managers" value={managerCount} hint="Total manager accounts" />
             <StatCard label="Employees" value={employeeCount} hint="Total engineer accounts" />
@@ -987,7 +704,7 @@ export default function AdminReports() {
       )}
 
       {activeTab === "issues" && (
-        <div className="space-y-4" ref={issueSectionRef}>
+        <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold text-gray-900">Issue Report</h2>
             <div className="flex items-center gap-2" data-report-exclude="true">
@@ -1060,7 +777,11 @@ export default function AdminReports() {
                     </tr>
                   ) : filteredIssues.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-600">No issues found.</td>
+                      <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-600">
+                        {issueProjectFilter === "ALL"
+                          ? "No issues found."
+                          : `No issues found for ${issueProjectOptions.find((p) => p.id === issueProjectFilter)?.name || "the selected project"}.`}
+                      </td>
                     </tr>
                   ) : (
                     filteredIssues.map((issue) => (
@@ -1084,22 +805,28 @@ export default function AdminReports() {
       )}
 
       {activeTab === "sla" && (
-        <div className="space-y-4" ref={slaSectionRef}>
+        <div className="space-y-4">
           <div className="flex items-center justify-end" data-report-exclude="true">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedSlaStatus("");
-                setSelectedSlaMonth("");
-              }}
-              className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Clear Selection
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSlaStatus("");
+                }}
+                className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Clear Selection
+              </button>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
             <StatCard label="SLA Tracked" value={slaSummary.total} hint="Issues with SLA status" />
+            <StatCard
+              label="Not Started"
+              value={slaSummary.notStarted}
+              hint="SLA timer not started"
+              onClick={() => setSelectedSlaStatus((prev) => (prev === "NOT_STARTED" ? "" : "NOT_STARTED"))}
+              active={selectedSlaStatus === "NOT_STARTED"}
+            />
             <StatCard
               label="On Track"
               value={slaSummary.onTrack}
@@ -1128,17 +855,14 @@ export default function AdminReports() {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <IssueStatusBarChart
-              items={slaStatusDistribution}
-              selectedKey={selectedSlaStatus}
-              onSelect={(key) => setSelectedSlaStatus((prev) => (prev === key ? "" : key))}
-            />
-            <SlaTrendBarChart
-              items={slaTrend}
-              selectedKey={selectedSlaMonth}
-              onSelect={(key) => setSelectedSlaMonth((prev) => (prev === key ? "" : key))}
-            />
+          <div className="grid grid-cols-1 gap-4">
+            <div className="w-full max-w-3xl">
+              <IssueStatusBarChart
+                items={slaStatusDistribution}
+                selectedKey={selectedSlaStatus}
+                onSelect={(key) => setSelectedSlaStatus((prev) => (prev === key ? "" : key))}
+              />
+            </div>
           </div>
 
           <div className="rounded-xl border border-gray-200">
@@ -1181,7 +905,11 @@ export default function AdminReports() {
                         <td className="px-4 py-2 text-sm text-gray-700">
                           {issue.projectName || projectNameById.get(String(issue.projectId)) || "-"}
                         </td>
-                        <td className="px-4 py-2 text-sm text-gray-700">{formatStatus(issue.slaStatus)}</td>
+                        <td className="px-4 py-2">
+                          <span className="inline-flex rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                            {formatStatus(issue.slaStatus)}
+                          </span>
+                        </td>
                         <td className="px-4 py-2 text-sm text-gray-700">{formatDateTime(issue.slaDueTime)}</td>
                         <td className="px-4 py-2 text-sm text-gray-700">{formatMinutes(issue.remainingMinutes)}</td>
                       </tr>

@@ -2,6 +2,8 @@ package com.smartims.service.impl;
 
 import com.smartims.dto.CreateIssueRequest;
 import com.smartims.dto.IssueResponse;
+import com.smartims.dto.ManagerAssignmentBoardResponse;
+import com.smartims.dto.ManagerEngineerAssignmentResponse;
 import com.smartims.dto.SlaComplianceResponse;
 import com.smartims.dto.SlaStatusResponse;
 import com.smartims.repository.SlaBreachRepository;
@@ -24,7 +26,12 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +84,7 @@ public class IssueServiceImpl implements IssueService {
                 .severity(severity)
                 .priorityLevel(priorityLevel)
                 .status(IssueStatus.OPEN)
+                .triaged(project.getManager().equals(currentUser) || currentUser.getRole().name().equals("ADMIN"))
                 .createdBy(createdBy)
                 .project(project)
                 .createdAt(LocalDateTime.now())
@@ -226,14 +234,9 @@ public class IssueServiceImpl implements IssueService {
         if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
             issues = issueRepository.findAll();
         }
-        // ADMIN can see only their company's issues
+        // ADMIN can see all issues
         else if (currentUser.getRole().name().equals("ADMIN")) {
-            String company = currentUser.getCompany();
-            if (company == null || company.isBlank()) {
-                issues = issueRepository.findAll();
-            } else {
-                issues = issueRepository.findByCompany(company);
-            }
+            issues = issueRepository.findAll();
         }
         // MANAGER can see only issues in their projects
         else if (currentUser.getRole().name().equals("MANAGER")) {
@@ -256,6 +259,103 @@ public class IssueServiceImpl implements IssueService {
         return issues.stream()
                 .map(this::toIssueResponse)
                 .toList();
+    }
+
+    @Override
+    public IssueResponse updateIssueDetails(Long issueId, String title, String description, Severity severity) {
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new ResourceNotFoundException("Issue not found"));
+
+        validateIssueAccess(issue);
+
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        String role = currentUser.getRole().name();
+        if (!"MANAGER".equals(role) && !"ADMIN".equals(role) && !"SUPER_ADMIN".equals(role)) {
+            throw new UnauthorizedException("Only manager/admin can edit issue details");
+        }
+
+        String oldTitle = issue.getTitle();
+        String oldDescription = issue.getDescription();
+        Severity oldSeverity = issue.getSeverity();
+
+        issue.setTitle(title);
+        issue.setDescription(description);
+        issue.setSeverity(severity);
+        issue.setPriorityLevel(severity.name());
+        issue.setTriaged(true);
+        Issue saved = issueRepository.save(issue);
+
+        issueActivityService.logActivity(
+                saved,
+                "ISSUE_UPDATED",
+                "Issue details updated (title/description/severity)"
+        );
+
+        notificationInboxService.notifyForIssueEvent(
+                "ISSUE_UPDATED",
+                "Issue '" + oldTitle + "' updated by manager",
+                saved
+        );
+
+        auditLogService.log(
+                "ISSUE_UPDATED",
+                "ISSUE",
+                saved.getId(),
+                "Updated title from '" + oldTitle + "', description length from "
+                        + (oldDescription != null ? oldDescription.length() : 0)
+                        + ", severity from " + oldSeverity + " to " + severity
+        );
+
+        return toIssueResponse(saved);
+    }
+
+    @Override
+    public IssueResponse updateIssueSeverity(Long issueId, Severity severity) {
+        Issue issue = issueRepository.findById(issueId)
+                .orElseThrow(() -> new ResourceNotFoundException("Issue not found"));
+
+        validateIssueAccess(issue);
+
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        String role = currentUser.getRole().name();
+        if (!"MANAGER".equals(role) && !"ADMIN".equals(role) && !"SUPER_ADMIN".equals(role)) {
+            throw new UnauthorizedException("Only manager/admin can update issue severity");
+        }
+
+        Severity oldSeverity = issue.getSeverity();
+        issue.setSeverity(severity);
+        issue.setPriorityLevel(severity.name());
+        issue.setTriaged(true);
+        Issue saved = issueRepository.save(issue);
+
+        issueActivityService.logActivity(
+                saved,
+                "SEVERITY_UPDATED",
+                "Severity changed from " + oldSeverity + " to " + severity
+        );
+
+        notificationInboxService.notifyForIssueEvent(
+                "ISSUE_SEVERITY_UPDATED",
+                "Issue '" + saved.getTitle() + "' severity changed from " + oldSeverity + " to " + severity,
+                saved
+        );
+
+        auditLogService.log(
+                "ISSUE_SEVERITY_UPDATED",
+                "ISSUE",
+                saved.getId(),
+                "Severity changed from " + oldSeverity + " to " + severity
+        );
+
+        return toIssueResponse(saved);
     }
 
     @Override
@@ -314,6 +414,14 @@ public class IssueServiceImpl implements IssueService {
         User engineer = userRepository.findById(engineerId)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
 
+        if (!"ENGINEER".equals(engineer.getRole().name())) {
+            throw new RuntimeException("Selected user is not an engineer");
+        }
+
+        if (!issue.getProject().getMembers().contains(engineer)) {
+            throw new RuntimeException("Engineer is not part of this issue project");
+        }
+
         issue.setAssignedEngineer(engineer);
 
         Issue saved = issueRepository.save(issue);
@@ -334,6 +442,130 @@ public class IssueServiceImpl implements IssueService {
                 .stream()
                 .map(this::toIssueResponse)
                 .toList();
+    }
+
+    @Override
+    public ManagerAssignmentBoardResponse getManagerAssignmentBoard() {
+        User currentUser = getCurrentUser();
+        List<Project> managerProjects = projectRepository.findByManager(currentUser);
+        List<Issue> managerIssues = managerProjects.stream()
+                .flatMap(project -> issueRepository.findByProject(project).stream())
+                .toList();
+
+        Set<Long> projectIds = managerProjects.stream()
+                .map(Project::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, User> engineerById = managerProjects.stream()
+                .flatMap(project -> project.getMembers().stream())
+                .filter(member -> member.getRole() != null && "ENGINEER".equals(member.getRole().name()))
+                .filter(member -> member.getId() != null)
+                .collect(Collectors.toMap(User::getId, u -> u, (a, b) -> a));
+
+        Map<Long, Set<Long>> engineerProjectIds = managerProjects.stream()
+                .flatMap(project -> project.getMembers().stream()
+                        .filter(member -> member.getRole() != null && "ENGINEER".equals(member.getRole().name()))
+                        .filter(member -> member.getId() != null)
+                        .map(member -> Map.entry(member.getId(), project.getId())))
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toSet())
+                ));
+
+        Map<Long, List<IssueResponse>> issuesByEngineerId = managerIssues.stream()
+                .filter(issue -> issue.getAssignedEngineer() != null && issue.getAssignedEngineer().getId() != null)
+                .collect(Collectors.groupingBy(
+                        issue -> issue.getAssignedEngineer().getId(),
+                        Collectors.mapping(this::toIssueResponse, Collectors.toList())
+                ));
+
+        List<ManagerEngineerAssignmentResponse> engineerCards = engineerById.values().stream()
+                .map(engineer -> ManagerEngineerAssignmentResponse.builder()
+                        .engineerId(engineer.getId())
+                        .engineerName(engineer.getFullName())
+                        .engineerEmail(engineer.getEmail())
+                        .projectIds(engineerProjectIds.getOrDefault(engineer.getId(), Set.of()).stream().toList())
+                        .assignedIssues(issuesByEngineerId.getOrDefault(engineer.getId(), List.of()))
+                        .build())
+                .toList();
+
+        List<IssueResponse> unassignedIssues = managerIssues.stream()
+                .filter(issue -> issue.getAssignedEngineer() == null)
+                .filter(issue -> issue.getProject() != null && projectIds.contains(issue.getProject().getId()))
+                .map(this::toIssueResponse)
+                .toList();
+
+        return ManagerAssignmentBoardResponse.builder()
+                .engineers(engineerCards)
+                .unassignedIssues(unassignedIssues)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public ManagerAssignmentBoardResponse autoAssignUnassignedIssuesForManager() {
+        User currentUser = getCurrentUser();
+        List<Project> managerProjects = projectRepository.findByManager(currentUser);
+
+        for (Project project : managerProjects) {
+            List<User> engineers = project.getMembers()
+                    .stream()
+                    .filter(member -> member.getRole() != null && "ENGINEER".equals(member.getRole().name()))
+                    .toList();
+
+            if (engineers.isEmpty()) {
+                continue;
+            }
+
+            List<Issue> unassigned = issueRepository.findByProject(project)
+                    .stream()
+                    .filter(issue -> issue.getAssignedEngineer() == null)
+                    .sorted(Comparator
+                            .comparingInt((Issue issue) -> severityWeight(issue.getSeverity()))
+                            .reversed()
+                            .thenComparing(Issue::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList();
+
+            Map<Long, Long> weightedLoadMap = new HashMap<>();
+            Map<Long, Long> activeIssueCountMap = new HashMap<>();
+            for (User engineer : engineers) {
+                weightedLoadMap.put(engineer.getId(), calculateEngineerWeightedLoad(engineer));
+                activeIssueCountMap.put(engineer.getId(), countActiveAssignedIssues(engineer));
+            }
+
+            for (Issue issue : unassigned) {
+                User selectedEngineer = engineers.stream()
+                        .min(Comparator
+                                .comparingLong((User engineer) -> weightedLoadMap.getOrDefault(engineer.getId(), 0L))
+                                .thenComparingLong(engineer -> activeIssueCountMap.getOrDefault(engineer.getId(), 0L))
+                                .thenComparing(User::getId))
+                        .orElse(null);
+
+                if (selectedEngineer == null) {
+                    continue;
+                }
+
+                issue.setAssignedEngineer(selectedEngineer);
+                issueRepository.save(issue);
+                weightedLoadMap.put(
+                        selectedEngineer.getId(),
+                        weightedLoadMap.getOrDefault(selectedEngineer.getId(), 0L) + severityWeight(issue.getSeverity())
+                );
+                activeIssueCountMap.put(
+                        selectedEngineer.getId(),
+                        activeIssueCountMap.getOrDefault(selectedEngineer.getId(), 0L) + 1L
+                );
+
+                issueActivityService.logActivity(
+                        issue,
+                        "AUTO_ASSIGNED",
+                        "Auto-assigned to " + selectedEngineer.getFullName()
+                );
+            }
+        }
+
+        return getManagerAssignmentBoard();
     }
 
     private void recordSlaBreachIfNeeded(Issue issue, LocalDateTime dueTime, LocalDateTime breachedAt) {
@@ -383,12 +615,18 @@ public class IssueServiceImpl implements IssueService {
             throw new RuntimeException("No engineers available in project");
         }
 
+        Map<Long, Long> weightedLoadMap = new HashMap<>();
+        Map<Long, Long> activeIssueCountMap = new HashMap<>();
+        for (User engineer : engineers) {
+            weightedLoadMap.put(engineer.getId(), calculateEngineerWeightedLoad(engineer));
+            activeIssueCountMap.put(engineer.getId(), countActiveAssignedIssues(engineer));
+        }
+
         User selectedEngineer = engineers.stream()
-                .min(Comparator.comparingLong(
-                        engineer -> issueRepository.countByAssignedEngineerAndStatus(
-                                engineer, IssueStatus.OPEN
-                        )
-                ))
+                .min(Comparator
+                        .comparingLong((User engineer) -> weightedLoadMap.getOrDefault(engineer.getId(), 0L))
+                        .thenComparingLong(engineer -> activeIssueCountMap.getOrDefault(engineer.getId(), 0L))
+                        .thenComparing(User::getId))
                 .orElseThrow();
 
         issue.setAssignedEngineer(selectedEngineer);
@@ -475,6 +713,45 @@ public class IssueServiceImpl implements IssueService {
         }
         issue.setSlaStartTime(now);
         issue.setSlaDueTime(now.plusMinutes(Math.max(1L, resolutionMinutes)));
+    }
+
+    private User getCurrentUser() {
+        org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        if (email == null || email.isBlank()) {
+            throw new UnauthorizedException("Authenticated user not found");
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+    }
+
+    private long calculateEngineerWeightedLoad(User engineer) {
+        return issueRepository.findByAssignedEngineer(engineer)
+                .stream()
+                .filter(this::isIssueActiveForWorkload)
+                .mapToLong(issue -> severityWeight(issue.getSeverity()))
+                .sum();
+    }
+
+    private long countActiveAssignedIssues(User engineer) {
+        return issueRepository.findByAssignedEngineer(engineer)
+                .stream()
+                .filter(this::isIssueActiveForWorkload)
+                .count();
+    }
+
+    private boolean isIssueActiveForWorkload(Issue issue) {
+        return issue != null && issue.getStatus() != IssueStatus.CLOSED;
+    }
+
+    private int severityWeight(Severity severity) {
+        if (severity == null) return 2;
+        return switch (severity) {
+            case CRITICAL -> 4;
+            case HIGH -> 3;
+            case MEDIUM -> 2;
+            case LOW -> 1;
+        };
     }
 
     private IssueResponse toIssueResponse(Issue issue) {

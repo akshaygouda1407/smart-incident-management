@@ -6,7 +6,8 @@ import {
   FileBarChart,
   Users,
   ClipboardList,
-  Wrench
+  Wrench,
+  CheckCircle2
 } from "lucide-react";
 
 export const SIDEBAR_CONFIG = {
@@ -31,6 +32,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Assigned Projects", path: "/manager/projects", icon: FolderKanban },
     { label: "Issues", path: "/manager/issues", icon: Bug },
     { label: "Assign Issues", path: "/manager/assign-issues", icon: ClipboardList },
+    { label: "Resolved Issues", path: "/manager/resolved-issues", icon: CheckCircle2 },
     { label: "SLA Monitoring", path: "/manager/sla-monitoring", icon: ShieldCheck },
     { label: "Workload", path: "/manager/workload", icon: FileBarChart },
     { label: "Team Users", path: "/manager/team-users", icon: Users },
