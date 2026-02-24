@@ -42,7 +42,7 @@ This platform supports real-world incident handling across multiple roles:
 
 ## Architecture
 
-`React UI -> Spring Boot REST APIs -> Service Layer -> PostgreSQL -> Metrics (Prometheus/Grafana optional)`
+`React UI -> Spring Boot REST APIs -> Service Layer -> PostgreSQL -> Metrics (Prometheus/Grafana)`
 
 ---
 
