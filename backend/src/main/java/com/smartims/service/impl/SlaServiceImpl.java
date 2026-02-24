@@ -110,21 +110,42 @@ public class SlaServiceImpl implements SlaService {
     @Override
     public List<SlaResponse> getPoliciesForCurrentUser() {
         User currentUser = getCurrentUser();
+        Role role = currentUser.getRole();
 
-        if (currentUser.getRole() == Role.SUPER_ADMIN) {
+        if (role == Role.SUPER_ADMIN) {
             return slaPolicyRepository.findAll()
                     .stream()
+                    .filter(policy -> policy != null && policy.getProject() != null)
                     .map(SlaMapper::toResponse)
                     .toList();
         }
 
-        String company = currentUser.getCompany();
-        if (company == null || company.isBlank()) {
-            return List.of();
-        }
+        String company = currentUser.getCompany() == null ? "" : currentUser.getCompany().trim();
+        Long currentUserId = currentUser.getId();
 
-        return slaPolicyRepository.findByProjectCompany(company)
+        return slaPolicyRepository.findAll()
                 .stream()
+                .filter(policy -> policy != null && policy.getProject() != null)
+                .filter(policy -> {
+                    Project project = policy.getProject();
+                    if (role == Role.ADMIN) {
+                        String projectCompany = project.getCompany() == null ? "" : project.getCompany().trim();
+                        return !company.isBlank() && company.equals(projectCompany);
+                    }
+                    if (role == Role.MANAGER) {
+                        return project.getManager() != null
+                                && project.getManager().getId() != null
+                                && project.getManager().getId().equals(currentUserId);
+                    }
+                    if (role == Role.ENGINEER) {
+                        return project.getMembers() != null
+                                && project.getMembers().stream().anyMatch(member ->
+                                member != null
+                                        && member.getId() != null
+                                        && member.getId().equals(currentUserId));
+                    }
+                    return false;
+                })
                 .map(SlaMapper::toResponse)
                 .toList();
     }

@@ -5,7 +5,10 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  CircleDot,
   FileText,
+  MessageSquare,
+  RotateCcw,
   Tag,
   UserRound
 } from "lucide-react";
@@ -79,6 +82,15 @@ function formatMinutesAsHours(min) {
   if (hours <= 0) return `${minutes}m`;
   if (minutes === 0) return `${hours}h`;
   return `${hours}h ${minutes}m`;
+}
+
+function formatUsedDuration(startValue, endValue) {
+  if (!startValue || !endValue) return "-";
+  const start = new Date(String(startValue).replace(" ", "T")).getTime();
+  const end = new Date(String(endValue).replace(" ", "T")).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return "-";
+  const mins = Math.round((end - start) / 60000);
+  return formatMinutesAsHours(mins);
 }
 
 function issueCode(id) {
@@ -162,6 +174,11 @@ export default function UserIssueDetails() {
 
   const slaRemainingText = useMemo(() => formatMinutesAsHours(sla?.remainingMinutes), [sla]);
   const slaNotStarted = String(sla?.status || "").toUpperCase() === "NOT_STARTED";
+  const issueCompleted = ["RESOLVED", "CLOSED"].includes(String(issue?.status || "").toUpperCase());
+  const usedSolveTimeText = useMemo(
+    () => formatUsedDuration(sla?.slaStartTime, issue?.resolvedAt),
+    [sla?.slaStartTime, issue?.resolvedAt]
+  );
   const responseTimeText = useMemo(() => {
     if (!sla?.slaStartTime || !sla?.slaDueTime) return "-";
     const start = new Date(String(sla.slaStartTime).replace(" ", "T")).getTime();
@@ -169,6 +186,16 @@ export default function UserIssueDetails() {
     const mins = Math.max(0, Math.round((due - start) / 60000));
     return formatMinutesAsHours(mins);
   }, [sla]);
+
+  const activityHistory = useMemo(() => {
+    return timeline.filter((item) => {
+      const content = String(item?.action || item?.description || "").trim();
+      if (!content) return false;
+      const normalized = content.toLowerCase();
+      // Comments are shown in the Comments tab; keep timeline focused on issue history events.
+      return !normalized.includes("comment");
+    });
+  }, [timeline]);
 
   const refreshComments = async () => {
     try {
@@ -315,10 +342,15 @@ export default function UserIssueDetails() {
               <h3 className="text-base font-semibold text-gray-700">SLA Timer</h3>
                 <p className="mt-2 inline-flex items-center gap-2 text-base font-semibold text-emerald-600">
                 <CheckCircle2 className="h-5 w-5" />
-                {slaNotStarted ? "Not started" : slaRemainingText}
+                {slaNotStarted ? "Not started" : issueCompleted ? `Solved in ${usedSolveTimeText}` : slaRemainingText}
               </p>
               {slaNotStarted && (
                 <p className="mt-1 text-xs text-gray-500">Timer starts when engineer clicks Start (In Progress).</p>
+              )}
+              {issueCompleted && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Time used from SLA start to resolution ({formatDateTime(issue?.resolvedAt)}).
+                </p>
               )}
             </div>
             <InfoCard
@@ -340,27 +372,37 @@ export default function UserIssueDetails() {
       {activeTab === "Activity History" && (
         <section className="rounded-2xl border border-gray-200 bg-white p-6">
           <h2 className="text-3xl font-semibold text-gray-900">Activity Timeline</h2>
+          <p className="mt-1 text-sm text-gray-600">Chronological issue updates and actions.</p>
           <div className="mt-5 space-y-4">
-            {timeline.length === 0 ? (
+            {activityHistory.length === 0 ? (
               <p className="text-sm text-gray-600">No activity found.</p>
             ) : (
-              timeline.map((item, idx) => {
+              activityHistory.map((item, idx) => {
                 const name = item?.performedBy || "System";
-                const initial = String(name).trim().charAt(0).toUpperCase() || "S";
+                const actionText = String(item?.action || item?.description || "").toUpperCase();
+                const TimelineIcon = actionText.includes("COMMENT")
+                  ? MessageSquare
+                  : actionText.includes("REOPEN") || actionText.includes("RETURN")
+                    ? RotateCcw
+                    : actionText.includes("RESOLVED") || actionText.includes("CLOSED")
+                      ? CheckCircle2
+                      : CircleDot;
                 return (
                   <div key={`${item?.createdAt}-${idx}`} className="flex gap-4">
                     <div className="flex flex-col items-center">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500 text-sm font-bold text-white">
-                        {initial}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700">
+                        <TimelineIcon className="h-5 w-5" />
                       </div>
-                      {idx !== timeline.length - 1 && <div className="h-full w-px bg-gray-300" />}
+                      {idx !== timeline.length - 1 && <div className="h-full w-px bg-gray-200" />}
                     </div>
-                    <article className="flex-1 rounded-xl bg-gray-50 px-4 py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-base font-semibold text-gray-900">{name}</p>
-                        <p className="text-sm text-gray-500">{formatDateTime(item?.createdAt)}</p>
+                    <article className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{name}</p>
+                        </div>
+                        <p className="text-xs font-medium text-gray-500">{formatDateTime(item?.createdAt)}</p>
                       </div>
-                      <p className="mt-1 text-sm text-gray-700">{item?.description || item?.action || "-"}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-gray-700">{item?.description || item?.action || "-"}</p>
                     </article>
                   </div>
                 );

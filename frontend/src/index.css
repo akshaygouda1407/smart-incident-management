@@ -241,3 +241,74 @@ body {
   border-color: var(--border);
   color: #e5e7eb;
 }
+
+/* Global dark mode adaptation for colored cards/badges */
+.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.14) !important; }
+.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.2) !important; }
+.dark .border-indigo-200 { border-color: rgba(129, 140, 248, 0.45) !important; }
+.dark .text-indigo-900 { color: #e0e7ff !important; }
+.dark .text-indigo-800,
+.dark .text-indigo-700 { color: #c7d2fe !important; }
+
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.14) !important; }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2) !important; }
+.dark .border-blue-200 { border-color: rgba(96, 165, 250, 0.45) !important; }
+.dark .text-blue-900 { color: #dbeafe !important; }
+.dark .text-blue-800,
+.dark .text-blue-700 { color: #bfdbfe !important; }
+
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.14) !important; }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.2) !important; }
+.dark .border-amber-200 { border-color: rgba(251, 191, 36, 0.45) !important; }
+.dark .text-amber-900 { color: #fef3c7 !important; }
+.dark .text-amber-800,
+.dark .text-amber-700 { color: #fde68a !important; }
+
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.14) !important; }
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.2) !important; }
+.dark .border-emerald-200 { border-color: rgba(52, 211, 153, 0.45) !important; }
+.dark .text-emerald-900 { color: #d1fae5 !important; }
+.dark .text-emerald-800,
+.dark .text-emerald-700 { color: #a7f3d0 !important; }
+
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.14) !important; }
+.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.2) !important; }
+.dark .border-red-200 { border-color: rgba(248, 113, 113, 0.45) !important; }
+.dark .text-red-900 { color: #fee2e2 !important; }
+.dark .text-red-800,
+.dark .text-red-700 { color: #fecaca !important; }
+
+.dark .bg-violet-50 { background-color: rgba(139, 92, 246, 0.14) !important; }
+.dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.2) !important; }
+.dark .border-violet-200 { border-color: rgba(167, 139, 250, 0.45) !important; }
+.dark .text-violet-900 { color: #ede9fe !important; }
+.dark .text-violet-800,
+.dark .text-violet-700 { color: #ddd6fe !important; }
+
+.dark .bg-slate-50 { background-color: rgba(148, 163, 184, 0.12) !important; }
+.dark .bg-slate-100 { background-color: rgba(148, 163, 184, 0.18) !important; }
+.dark .border-slate-200 { border-color: rgba(148, 163, 184, 0.4) !important; }
+.dark .text-slate-900 { color: #f1f5f9 !important; }
+.dark .text-slate-800,
+.dark .text-slate-700 { color: #e2e8f0 !important; }
+
+.dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.14) !important; }
+.dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.2) !important; }
+.dark .border-orange-200 { border-color: rgba(251, 146, 60, 0.45) !important; }
+.dark .text-orange-800,
+.dark .text-orange-700 { color: #fed7aa !important; }
+
+.dark .bg-sky-50 { background-color: rgba(14, 165, 233, 0.14) !important; }
+.dark .bg-sky-100 { background-color: rgba(14, 165, 233, 0.2) !important; }
+.dark .border-sky-200 { border-color: rgba(56, 189, 248, 0.45) !important; }
+.dark .text-sky-800,
+.dark .text-sky-700 { color: #bae6fd !important; }
+
+/* Gradient cards using light stops need dark replacements */
+.dark .from-indigo-50 { --tw-gradient-from: rgba(99, 102, 241, 0.18) var(--tw-gradient-from-position) !important; }
+.dark .to-indigo-100 { --tw-gradient-to: rgba(99, 102, 241, 0.1) var(--tw-gradient-to-position) !important; }
+.dark .from-emerald-50 { --tw-gradient-from: rgba(16, 185, 129, 0.18) var(--tw-gradient-from-position) !important; }
+.dark .to-emerald-100 { --tw-gradient-to: rgba(16, 185, 129, 0.1) var(--tw-gradient-to-position) !important; }
+.dark .from-cyan-50 { --tw-gradient-from: rgba(6, 182, 212, 0.18) var(--tw-gradient-from-position) !important; }
+.dark .to-sky-100 { --tw-gradient-to: rgba(14, 165, 233, 0.1) var(--tw-gradient-to-position) !important; }
+.dark .via-white { --tw-gradient-via: rgba(15, 23, 42, 0.9) var(--tw-gradient-via-position) !important; }

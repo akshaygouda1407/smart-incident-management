@@ -7,7 +7,9 @@ import {
   Users,
   ClipboardList,
   Wrench,
-  CheckCircle2
+  CheckCircle2,
+  BugIcon,
+  BugPlay
 } from "lucide-react";
 
 export const SIDEBAR_CONFIG = {
@@ -45,8 +47,7 @@ export const SIDEBAR_CONFIG = {
     { label: "Assigned Issues", path: "/engineer/issues", icon: Bug },
     { label: "SLA Policies", path: "/engineer/sla-policies", icon: ShieldCheck },
     { label: "My Workload", path: "/engineer/workload", icon: FileBarChart },
-    { label: "Issue Status", path: "/engineer/issue-status", icon: ClipboardList },
-    { label: "Solved Issues", path: "/engineer/solved-issues", icon: Bug },
+    { label: "Solved Issues", path: "/engineer/solved-issues", icon: BugPlay },
     { label: "Reports", path: "/engineer/reports", icon: FileBarChart }
   ],
 

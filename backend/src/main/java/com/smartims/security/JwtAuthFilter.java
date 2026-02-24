@@ -1,6 +1,7 @@
 package com.smartims.security;
 
 import com.smartims.entity.User;
+import com.smartims.enums.Role;
 import com.smartims.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -75,6 +76,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             );
             return;
         }
+        if (isCompanyBlockedByAdmin(user)) {
+            response.sendError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Company admin is disabled or locked. Access is temporarily blocked."
+            );
+            return;
+        }
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
@@ -92,5 +100,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    private boolean isCompanyBlockedByAdmin(User user) {
+        if (user == null || user.getRole() == Role.SUPER_ADMIN) {
+            return false;
+        }
+        String company = user.getCompany();
+        if (company == null || company.isBlank()) {
+            return false;
+        }
+        var admins = userRepository.findByRoleAndCompany(Role.ADMIN, company);
+        if (admins.isEmpty()) {
+            return false;
+        }
+        return admins.stream().allMatch(admin -> !Boolean.TRUE.equals(admin.getEnabled()) || Boolean.TRUE.equals(admin.getLocked()));
+    }
 
 }

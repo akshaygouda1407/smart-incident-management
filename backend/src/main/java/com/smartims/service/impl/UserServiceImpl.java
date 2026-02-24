@@ -50,6 +50,9 @@ public class UserServiceImpl implements UserService {
         if (!user.getEnabled() || user.getLocked()) {
             throw new AuthException("Account is disabled or locked");
         }
+        if (isCompanyBlockedByAdmin(user)) {
+            throw new AuthException("Company admin is disabled or locked. Access is temporarily blocked.");
+        }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new AuthException("Invalid credentials");
@@ -426,6 +429,9 @@ public class UserServiceImpl implements UserService {
 
         user.setEnabled(enabled);
         userRepository.save(user);
+        if (user.getRole() == Role.ADMIN && !enabled) {
+            cascadeDisableForCompanyMembers(user);
+        }
 
         auditLogService.log(
                 "UPDATE_USER_STATUS",
@@ -455,6 +461,9 @@ public class UserServiceImpl implements UserService {
 
         user.setLocked(locked);
         userRepository.save(user);
+        if (user.getRole() == Role.ADMIN && locked) {
+            cascadeLockForCompanyMembers(user);
+        }
 
         auditLogService.log(
                 "UPDATE_USER_LOCK",
@@ -558,6 +567,67 @@ public class UserServiceImpl implements UserService {
                 .locked(user.getLocked())
                 .company(user.getCompany())
                 .build();
+    }
+
+    private boolean isCompanyBlockedByAdmin(User user) {
+        if (user == null || user.getRole() == Role.SUPER_ADMIN) {
+            return false;
+        }
+        String company = user.getCompany();
+        if (company == null || company.isBlank()) {
+            return false;
+        }
+        List<User> admins = userRepository.findByRoleAndCompany(Role.ADMIN, company);
+        if (admins.isEmpty()) {
+            return false;
+        }
+        return admins.stream().allMatch(admin -> !Boolean.TRUE.equals(admin.getEnabled()) || Boolean.TRUE.equals(admin.getLocked()));
+    }
+
+    private void cascadeDisableForCompanyMembers(User adminUser) {
+        String company = adminUser.getCompany();
+        if (company == null || company.isBlank()) {
+            return;
+        }
+        List<User> companyUsers = userRepository.findByCompany(company);
+        List<User> toUpdate = companyUsers.stream()
+                .filter(member -> !member.getId().equals(adminUser.getId()))
+                .filter(member -> member.getRole() != Role.SUPER_ADMIN)
+                .filter(User::getEnabled)
+                .peek(member -> member.setEnabled(false))
+                .toList();
+        if (!toUpdate.isEmpty()) {
+            userRepository.saveAll(toUpdate);
+            auditLogService.logSystem(
+                    "COMPANY_USERS_DISABLED_BY_ADMIN_STATUS",
+                    "Company users disabled because company admin was disabled",
+                    adminUser.getId(),
+                    "USER"
+            );
+        }
+    }
+
+    private void cascadeLockForCompanyMembers(User adminUser) {
+        String company = adminUser.getCompany();
+        if (company == null || company.isBlank()) {
+            return;
+        }
+        List<User> companyUsers = userRepository.findByCompany(company);
+        List<User> toUpdate = companyUsers.stream()
+                .filter(member -> !member.getId().equals(adminUser.getId()))
+                .filter(member -> member.getRole() != Role.SUPER_ADMIN)
+                .filter(member -> !Boolean.TRUE.equals(member.getLocked()))
+                .peek(member -> member.setLocked(true))
+                .toList();
+        if (!toUpdate.isEmpty()) {
+            userRepository.saveAll(toUpdate);
+            auditLogService.logSystem(
+                    "COMPANY_USERS_LOCKED_BY_ADMIN_STATUS",
+                    "Company users locked because company admin was locked",
+                    adminUser.getId(),
+                    "USER"
+            );
+        }
     }
 
     private void validateUserAccess(User targetUser) {

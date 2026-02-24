@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock3, RefreshCcw, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, RefreshCcw, XCircle } from "lucide-react";
 import {
   getAllIssues,
   getIssueSlaStatus,
@@ -52,15 +52,6 @@ function statusPillClasses(status) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
   return "bg-gray-50 text-gray-700 border-gray-200";
-}
-
-function priorityPillClasses(priority) {
-  const normalized = String(priority || "").toUpperCase();
-  if (normalized === "CRITICAL") return "bg-red-500 text-white";
-  if (normalized === "HIGH") return "bg-amber-500 text-white";
-  if (normalized === "MEDIUM") return "bg-blue-500 text-white";
-  if (normalized === "LOW") return "bg-gray-200 text-gray-700";
-  return "bg-gray-100 text-gray-600";
 }
 
 function minutesToText(minutes) {
@@ -122,12 +113,6 @@ function SummaryCard({ tone, label, value, icon: Icon }) {
             accent: "border-l-4 border-l-amber-500",
             icon: "bg-amber-100 text-amber-600"
           }
-        : tone === "blue"
-          ? {
-              border: "border-blue-200",
-              accent: "border-l-4 border-l-blue-500",
-              icon: "bg-blue-100 text-blue-600"
-            }
         : {
             border: "border-emerald-200",
             accent: "border-l-4 border-l-emerald-500",
@@ -138,7 +123,7 @@ function SummaryCard({ tone, label, value, icon: Icon }) {
     <div className={`rounded-xl border bg-white p-4 ${styles.border} ${styles.accent}`}>
       <div className="flex items-center gap-3">
         <div className={`rounded-full p-2.5 ${styles.icon}`}>
-          <Icon className="h-5 w-5" />
+          {Icon ? <Icon className="h-5 w-5" /> : null}
         </div>
         <div>
           <p className="text-sm font-medium text-gray-600">{label}</p>
@@ -306,12 +291,8 @@ export default function AdminSlaMonitoring() {
 
   const breachedCount = filteredRows.filter((r) => r.slaStatus === "BREACHED").length;
   const atRiskCount = filteredRows.filter((r) => r.slaStatus === "AT_RISK").length;
-  const withinSlaCount = filteredRows.filter(
-    (r) => String(r.slaStatus || "").toUpperCase() === "ON_TRACK" && String(r.status || "").toUpperCase() === "IN_PROGRESS"
-  ).length;
-  const solvedWithinSlaCount = filteredRows.filter(
-    (r) => String(r.slaStatus || "").toUpperCase() === "RESOLVED_IN_SLA"
-  ).length;
+  const withinSlaCount = filteredRows.filter((r) => r.slaStatus === "ON_TRACK").length;
+  const solvedWithinSlaCount = filteredRows.filter((r) => r.slaStatus === "RESOLVED_IN_SLA").length;
 
   return (
     <div className="space-y-5 rounded-xl border border-gray-200 bg-white p-6">
@@ -336,7 +317,7 @@ export default function AdminSlaMonitoring() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <SummaryCard tone="red" label="SLA Breached" value={breachedCount} icon={XCircle} />
         <SummaryCard tone="amber" label="Near Breach" value={atRiskCount} icon={AlertTriangle} />
-        <SummaryCard tone="blue" label="Within SLA" value={withinSlaCount} icon={Clock3} />
+        <SummaryCard tone="green" label="Within SLA" value={withinSlaCount} icon={CheckCircle2} />
         <SummaryCard tone="green" label="Solved Within SLA" value={solvedWithinSlaCount} icon={CheckCircle2} />
       </div>
 
@@ -417,6 +398,7 @@ export default function AdminSlaMonitoring() {
               <option value="AT_RISK">At Risk</option>
               <option value="BREACHED">Breached</option>
               <option value="RESOLVED_IN_SLA">Resolved In SLA</option>
+              <option value="NOT_STARTED">Not Started</option>
               <option value="NOT_STARTED">Not Started</option>
               <option value="UNKNOWN">Unavailable</option>
             </select>
@@ -520,15 +502,7 @@ export default function AdminSlaMonitoring() {
                           {formatStatus(row.slaStatus)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span
-                          className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ${priorityPillClasses(
-                            row.severity
-                          )}`}
-                        >
-                          {formatStatus(row.severity)}
-                        </span>
-                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatStatus(row.severity)}</td>
                       <td className={`px-4 py-3 text-sm font-semibold ${timerClass}`}>{minutesToText(remaining)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.resolvedAt)}</td>
                       <td className={`px-4 py-3 text-sm font-medium ${escalationClass}`}>{escalationText}</td>

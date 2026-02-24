@@ -105,7 +105,7 @@ function SummaryCard({ tone, label, value, icon: Icon }) {
     <div className={`rounded-xl border bg-white p-4 ${styles.border} ${styles.accent}`}>
       <div className="flex items-center gap-3">
         <div className={`rounded-full p-2.5 ${styles.icon}`}>
-          <Icon className="h-5 w-5" />
+          {Icon ? <Icon className="h-5 w-5" /> : null}
         </div>
         <div>
           <p className="text-sm font-medium text-gray-600">{label}</p>

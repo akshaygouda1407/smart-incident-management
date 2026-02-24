@@ -42,10 +42,11 @@ export default function AppBreadcrumb() {
   const isEngineerProjectDetails = /^\/engineer\/project\/[^/]+$/.test(location.pathname);
   const isUserIssueDetails = /^\/user\/issues\/[^/]+$/.test(location.pathname);
   const isManagerIssueDetails = /^\/manager\/issues\/[^/]+$/.test(location.pathname);
+  const isEngineerIssueDetails = /^\/engineer\/issues\/[^/]+$/.test(location.pathname);
   const projectIdFromPath = isUserProjectDetails || isManagerProjectDetails || isEngineerProjectDetails
     ? location.pathname.split("/").filter(Boolean).pop()
     : null;
-  const issueIdFromPath = isUserIssueDetails || isManagerIssueDetails
+  const issueIdFromPath = isUserIssueDetails || isManagerIssueDetails || isEngineerIssueDetails
     ? location.pathname.split("/").filter(Boolean).pop()
     : null;
   const projectNameFromState = location.state?.projectName;
@@ -123,6 +124,18 @@ export default function AppBreadcrumb() {
               className="font-medium text-gray-600 hover:text-indigo-600"
             >
               Issues
+            </button>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="font-semibold text-gray-900">{`ISS-${String(issueIdFromPath).padStart(3, "0")}`}</span>
+          </>
+        ) : isEngineerIssueDetails ? (
+          <>
+            <button
+              type="button"
+              onClick={() => navigate("/engineer/issues")}
+              className="font-medium text-gray-600 hover:text-indigo-600"
+            >
+              Assigned Issues
             </button>
             <ChevronRight className="h-4 w-4 text-gray-400" />
             <span className="font-semibold text-gray-900">{`ISS-${String(issueIdFromPath).padStart(3, "0")}`}</span>

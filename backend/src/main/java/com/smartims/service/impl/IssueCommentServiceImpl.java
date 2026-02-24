@@ -4,6 +4,7 @@ import com.smartims.dto.IssueCommentResponse;
 import com.smartims.entity.Issue;
 import com.smartims.entity.IssueComment;
 import com.smartims.entity.User;
+import com.smartims.enums.Role;
 import com.smartims.repository.IssueCommentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
@@ -63,10 +64,31 @@ public class IssueCommentServiceImpl implements IssueCommentService {
 
     @Override
     public List<IssueCommentResponse> getComments(Long issueId) {
+        String email = AuthUtil.getLoggedInUser();
+        User currentUser = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
+
         return issueCommentRepository.findByIssueIdOrderByCreatedAtAsc(issueId)
                 .stream()
+                .filter(comment -> canViewComment(currentUser, comment))
                 .map(this::map)
                 .toList();
+    }
+
+    private boolean canViewComment(User currentUser, IssueComment comment) {
+        if (currentUser == null) return false;
+        if (currentUser.getRole() != Role.USER) {
+            return true;
+        }
+        if (comment != null && comment.getCommentedBy() != null
+                && comment.getCommentedBy().getId() != null
+                && comment.getCommentedBy().getId().equals(currentUser.getId())) {
+            return true;
+        }
+        Role authorRole = comment != null && comment.getCommentedBy() != null
+                ? comment.getCommentedBy().getRole()
+                : null;
+        return authorRole != Role.ENGINEER && authorRole != Role.MANAGER;
     }
 
     private IssueCommentResponse map(IssueComment c) {

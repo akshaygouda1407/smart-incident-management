@@ -2,6 +2,7 @@ import api from "./axios";
 
 // Backend controller: /api/admin/sla
 export const getAllSlaPolicies = () => api.get("/admin/sla");
+export const getCurrentUserSlaPolicies = () => api.get("/sla/policies");
 
 export const createSlaPolicy = (payload) => api.post("/admin/sla", payload);
 

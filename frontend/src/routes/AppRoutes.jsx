@@ -19,6 +19,10 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import EngineerDashboard from "../pages/engineer/EngineerDashboard";
 import EngineerProjectDetails from "../pages/engineer/EngineerProjectDetails";
+import EngineerSlaPolicies from "../pages/engineer/EngineerSlaPolicies";
+import EngineerWorkload from "../pages/engineer/EngineerWorkload";
+import EngineerSolvedIssues from "../pages/engineer/EngineerSolvedIssues";
+import EngineerReports from "../pages/engineer/EngineerReports";
 import UserDashboard from "../pages/user/UserDashboard";
 import PlaceholderPage from "../pages/common/PlaceholderPage";
 import AdminUserManagement from "../pages/admin/AdminUserManagement";
@@ -302,7 +306,7 @@ export default function AppRoutes() {
           path="/engineer/sla-policies"
           element={
             <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · SLA Policies" />
+              <EngineerSlaPolicies />
             </ProtectedRoute>
           }
         />
@@ -310,7 +314,7 @@ export default function AppRoutes() {
           path="/engineer/workload"
           element={
             <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · My Workload" />
+              <EngineerWorkload />
             </ProtectedRoute>
           }
         />
@@ -326,7 +330,7 @@ export default function AppRoutes() {
           path="/engineer/solved-issues"
           element={
             <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · Solved Issues" />
+              <EngineerSolvedIssues />
             </ProtectedRoute>
           }
         />
@@ -334,7 +338,7 @@ export default function AppRoutes() {
           path="/engineer/reports"
           element={
             <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · Reports" />
+              <EngineerReports />
             </ProtectedRoute>
           }
         />
