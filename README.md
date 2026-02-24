@@ -78,7 +78,7 @@ The backend is configured to:
 Defaults in `backend/src/main/resources/application.properties`:
 - `spring.datasource.url=jdbc:postgresql://localhost:5432/smartims`
 - `spring.datasource.username=postgres`
-- `spring.datasource.password=postgres`
+- `spring.datasource.password=root`
 - `app.db.auto-create.enabled=true`
 - `spring.jpa.hibernate.ddl-auto=update`
 
@@ -171,4 +171,4 @@ Typical metrics endpoint:
 ## Author
 
 **Dhrumil Trivedi**  
-Final Year Student | Java Backend Developer
+Java Backend Developer
