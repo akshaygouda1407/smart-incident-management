@@ -12,6 +12,7 @@ function App() {
 
   const isAuthLightRoute =
     location.pathname === "/login" ||
+    location.pathname === "/register" ||
     location.pathname === "/authentication/register" ||
     location.pathname === "/forgot-password" ||
     location.pathname === "/reset-password";

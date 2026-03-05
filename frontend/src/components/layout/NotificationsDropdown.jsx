@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, X, Check, CheckCircle2 } from "lucide-react";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, getUnreadNotificationsCount } from "../../api/notificationApi";
 import { showError } from "../../utils/toast";
+import { useAuth } from "../../context/useAuth";
 
 function getApiMessage(err) {
   return (
@@ -13,48 +14,82 @@ function getApiMessage(err) {
 }
 
 export default function NotificationsDropdown() {
+  const { token } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
 
-  const fetchNotifications = async () => {
+  const parseUnreadCount = useCallback((response) => {
+    const value =
+      response?.data ??
+      response?.count ??
+      response?.data?.data ??
+      0;
+
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }, []);
+
+  const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getNotifications(0, 10);
-      const data = response?.data || response;
-      if (Array.isArray(data)) {
-        setNotifications(data);
-      } else if (data?.content && Array.isArray(data.content)) {
-        // Handle paginated response
-        setNotifications(data.content);
+      const PAGE_SIZE = 50;
+      const MAX_PAGES = 100; // safety cap
+      const all = [];
+
+      for (let page = 0; page < MAX_PAGES; page += 1) {
+        const response = await getNotifications(page, PAGE_SIZE);
+        const data = response?.data || response;
+        const pageItems = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.content)
+            ? data.content
+            : [];
+
+        all.push(...pageItems);
+
+        if (pageItems.length < PAGE_SIZE) break;
       }
+
+      setNotifications(all);
     } catch (err) {
       console.log("Error fetching notifications:", getApiMessage(err));
       setNotifications([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await getUnreadNotificationsCount();
-      const count = response?.data ? response.data : 0;
-      setUnreadCount(typeof count === 'number' ? count : 0);
+      setUnreadCount(parseUnreadCount(response));
     } catch (err) {
       console.log("Error fetching unread count:", getApiMessage(err));
       setUnreadCount(0);
     }
-  };
+  }, [parseUnreadCount]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && token) {
       fetchNotifications();
       fetchUnreadCount();
     }
-  }, [isOpen]);
+  }, [fetchNotifications, fetchUnreadCount, isOpen, token]);
+
+  useEffect(() => {
+    if (!token) {
+      setUnreadCount(0);
+      return undefined;
+    }
+
+    fetchUnreadCount();
+    const intervalId = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchUnreadCount, token]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

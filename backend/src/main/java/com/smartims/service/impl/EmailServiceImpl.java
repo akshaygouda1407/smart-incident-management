@@ -4,11 +4,13 @@ import com.smartims.enums.OtpPurpose;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
@@ -19,8 +21,23 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.mail.from:}")
     private String fromAddress;
 
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
     @Override
     public void sendOtpEmail(String email, String otp, OtpPurpose purpose) {
+
+        if (!isMailConfigured()) {
+            log.warn("MAIL_DISABLED | Skipping OTP email | purpose={} | to={}", purpose, email);
+            log.warn("DEV_ONLY_OTP | purpose={} | to={} | otp={}", purpose, email, otp);
+            auditLogService.logSystem(
+                    "OTP_EMAIL_SKIPPED",
+                    "Mail is not configured; OTP email skipped for purpose: " + purpose,
+                    null,
+                    "EMAIL"
+            );
+            return;
+        }
 
         String subject = purpose == OtpPurpose.REGISTER
                 ? "Verify Your ServicePlus Account"
@@ -49,6 +66,17 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendContactAcknowledgement(String email, String name) {
+
+        if (!isMailConfigured()) {
+            log.warn("MAIL_DISABLED | Skipping contact acknowledgement email | to={}", email);
+            auditLogService.logSystem(
+                    "CONTACT_ACK_EMAIL_SKIPPED",
+                    "Mail is not configured; contact acknowledgement email skipped to " + email,
+                    null,
+                    "EMAIL"
+            );
+            return;
+        }
 
         String subject = "We Received Your Message – ServicePlus";
 
@@ -80,6 +108,17 @@ public class EmailServiceImpl implements EmailService {
             String rawPassword,
             String loginUrl
     ) {
+        if (!isMailConfigured()) {
+            log.warn("MAIL_DISABLED | Skipping new user credentials email | to={}", email);
+            auditLogService.logSystem(
+                    "NEW_USER_CREDENTIALS_EMAIL_SKIPPED",
+                    "Mail is not configured; new user credentials email skipped to " + email,
+                    null,
+                    "EMAIL"
+            );
+            return;
+        }
+
         String subject = "Your ServicePlus Account Details";
 
         String safeName = (fullName == null || fullName.isBlank()) ? "Hello" : "Hello " + fullName;
@@ -120,5 +159,11 @@ public class EmailServiceImpl implements EmailService {
         message.setText(body);
 
         mailSender.send(message);
+    }
+
+    private boolean isMailConfigured() {
+        if (mailUsername == null) return false;
+        String value = mailUsername.trim();
+        return !value.isEmpty() && !"null".equalsIgnoreCase(value);
     }
 }

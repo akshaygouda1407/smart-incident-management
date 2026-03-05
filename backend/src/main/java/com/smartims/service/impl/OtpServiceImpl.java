@@ -2,6 +2,7 @@ package com.smartims.service.impl;
 
 import com.smartims.entity.OtpVerification;
 import com.smartims.enums.OtpPurpose;
+import com.smartims.exception.BadRequestException;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.EmailService;
 import com.smartims.service.OtpException;
@@ -30,7 +31,7 @@ public class OtpServiceImpl implements OtpService {
         otpRepo.findTopByEmailAndPurposeOrderByCreatedAtDesc(email, purpose)
                 .ifPresent(lastOtp -> {
                     if (Duration.between(lastOtp.getCreatedAt(), LocalDateTime.now()).toSeconds() < 30) {
-                        throw new RuntimeException("Please wait before requesting another OTP");
+                        throw new BadRequestException("Please wait before requesting another OTP");
                     }
                 });
 
@@ -46,7 +47,17 @@ public class OtpServiceImpl implements OtpService {
 
         otpRepo.save(entity);
 
-        emailService.sendOtpEmail(email, otp, purpose);
+        try {
+            emailService.sendOtpEmail(email, otp, purpose);
+        } catch (Exception ex) {
+            // In local/dev environments mail may be unconfigured. Do not fail OTP generation/storage.
+            auditLogService.logSystem(
+                    "OTP_EMAIL_FAILED",
+                    "Failed to send OTP email for purpose: " + purpose,
+                    null,
+                    "EMAIL"
+            );
+        }
 
         auditLogService.logSystem(
                 "OTP_GENERATED",

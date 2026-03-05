@@ -3,6 +3,7 @@ package com.smartims.controller;
 import com.smartims.dto.*;
 import com.smartims.entity.User;
 import com.smartims.enums.OtpPurpose;
+import com.smartims.exception.BadRequestException;
 import com.smartims.exception.AuthException;
 import com.smartims.repository.UserRepository;
 import com.smartims.service.OtpService;
@@ -109,11 +110,10 @@ public class AuthController {
     @PostMapping("/forgot-password/request-otp")
     public ApiResponse<?> requestForgotPasswordOtp(@RequestParam String email) {
 
-        if (!userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email is not registered");
+        // Avoid user enumeration: always return success even if the email isn't registered.
+        if (userRepository.existsByEmail(email)) {
+            otpService.generateAndSendOtp(email, OtpPurpose.FORGOT_PASSWORD);
         }
-
-        otpService.generateAndSendOtp(email, OtpPurpose.FORGOT_PASSWORD);
         return ApiResponse.success("OTP sent to email");
     }
 
@@ -134,7 +134,7 @@ public class AuthController {
             @RequestParam String newPassword
     ) {
         if (!otpService.isOtpVerified(email, OtpPurpose.FORGOT_PASSWORD)) {
-            throw new RuntimeException("OTP verification required");
+            throw new BadRequestException("OTP verification required");
         }
 
         userService.resetPassword(email, newPassword);

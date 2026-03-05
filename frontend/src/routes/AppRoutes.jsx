@@ -1,84 +1,107 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+
+import AuthLayout from "../layouts/AuthLayout";
+
+import PublicRoute from "./PublicRoute";
+import ProtectedRoute from "./ProtectedRoute";
+
+import Index from "../pages/public/Index";
 
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
-import Index from "../pages/public/Index";
 import ForgotPassword from "../pages/auth/ForgotPassword";
-import AuthLayout from "../layouts/AuthLayout";
+import ResetPassword from "../pages/auth/ResetPassword";
 import ForceChangePassword from "../pages/auth/ForceChangePassword";
-
 
 import Unauthorized from "../pages/errors/Unauthorized";
 import NotFound from "../pages/errors/NotFound";
 import Maintenance from "../pages/errors/Maintenance";
 
-import PublicRoute from "./PublicRoute";
-import ProtectedRoute from "./ProtectedRoute";
-
-import AdminDashboard from "../pages/admin/AdminDashboard";
-import ManagerDashboard from "../pages/manager/ManagerDashboard";
-import EngineerDashboard from "../pages/engineer/EngineerDashboard";
-import EngineerProjectDetails from "../pages/engineer/EngineerProjectDetails";
-import EngineerSlaPolicies from "../pages/engineer/EngineerSlaPolicies";
-import EngineerWorkload from "../pages/engineer/EngineerWorkload";
-import EngineerSolvedIssues from "../pages/engineer/EngineerSolvedIssues";
-import EngineerReports from "../pages/engineer/EngineerReports";
-import UserDashboard from "../pages/user/UserDashboard";
-import PlaceholderPage from "../pages/common/PlaceholderPage";
-import AdminUserManagement from "../pages/admin/AdminUserManagement";
-import AdminProjects from "../pages/admin/AdminProjects";
-import AdminSlaConfiguration from "../pages/admin/AdminSlaConfiguration";
-import AdminSlaMonitoring from "../pages/admin/AdminSlaMonitoring";
-import AdminReports from "../pages/admin/AdminReports";
 import SuperAdminDashboard from "../pages/superadmin/SuperAdminDashboard";
 import SuperAdminAddCompanyAdmin from "../pages/superadmin/SuperAdminAddCompanyAdmin";
 import SuperAdminUsers from "../pages/superadmin/SuperAdminUsers";
 import SuperAdminLogs from "../pages/superadmin/SuperAdminLogs";
-import EditProfile from "../pages/profile/EditProfile";
-import ChangePassword from "../pages/profile/ChangePassword";
+
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminProjects from "../pages/admin/AdminProjects";
+import AdminSlaMonitoring from "../pages/admin/AdminSlaMonitoring";
+import AdminSlaConfiguration from "../pages/admin/AdminSlaConfiguration";
+import AdminUserManagement from "../pages/admin/AdminUserManagement";
+import AdminReports from "../pages/admin/AdminReports";
+
+import ManagerDashboard from "../pages/manager/ManagerDashboard";
+import ManagerAssignedProjects from "../pages/manager/ManagerAssignedProjects";
+import ManagerIssues from "../pages/manager/ManagerIssues";
+import AssignIssues from "../pages/manager/AssignIssues";
+import ManagerResolvedIssues from "../pages/manager/ManagerResolvedIssues";
+import ManagerSlaMonitoring from "../pages/manager/ManagerSlaMonitoring";
+import ManagerWorkload from "../pages/manager/ManagerWorkload";
+import Team from "../pages/manager/Team";
+import ManagerReports from "../pages/manager/ManagerReports";
+
+import EngineerDashboard from "../pages/engineer/EngineerDashboard";
+import EngineerProjectDetails from "../pages/engineer/EngineerProjectDetails";
+import MyEngineerIssues from "../pages/engineer/MyIssues";
+import EngineerSlaPolicies from "../pages/engineer/EngineerSlaPolicies";
+import EngineerWorkload from "../pages/engineer/EngineerWorkload";
+import EngineerSolvedIssues from "../pages/engineer/EngineerSolvedIssues";
+import EngineerReports from "../pages/engineer/EngineerReports";
+
+import UserDashboard from "../pages/user/UserDashboard";
 import UserProjectDetails from "../pages/user/UserProjectDetails";
 import UserCreateIssue from "../pages/user/UserCreateIssue";
 import UserIssues from "../pages/user/UserIssues";
-import UserReports from "../pages/user/UserReports";
 import UserIssueDetails from "../pages/user/UserIssueDetails";
-import ManagerAssignedProjects from "../pages/manager/ManagerAssignedProjects";
-import ManagerIssues from "../pages/manager/ManagerIssues";
-import Team from "../pages/manager/Team";
-import AssignIssues from "../pages/manager/AssignIssues";
-import ManagerSlaMonitoring from "../pages/manager/ManagerSlaMonitoring";
-import ManagerWorkload from "../pages/manager/ManagerWorkload";
-import ManagerReports from "../pages/manager/ManagerReports";
-import ManagerResolvedIssues from "../pages/manager/ManagerResolvedIssues";
-import MyIssues from "../pages/engineer/MyIssues";
+import UserReports from "../pages/user/UserReports";
+
+import EditProfile from "../pages/profile/EditProfile";
+import ChangePassword from "../pages/profile/ChangePassword";
 
 export default function AppRoutes() {
   return (
     <Routes>
-
-      <Route path="/" element={
+      <Route
+        path="/"
+        element={
           <PublicRoute>
             <Index />
           </PublicRoute>
         }
       />
 
-      <Route path="/login" element={
+      <Route
+        path="/login"
+        element={
           <PublicRoute>
             <Login />
           </PublicRoute>
         }
       />
 
-      <Route path="/authentication/register" element={
+      <Route
+        path="/register"
+        element={
           <PublicRoute>
             <Register />
           </PublicRoute>
         }
       />
+      <Route path="/authentication/register" element={<Navigate to="/register" replace />} />
 
-      <Route path="/forgot-password" element={
+      <Route
+        path="/forgot-password"
+        element={
           <PublicRoute>
             <ForgotPassword />
+          </PublicRoute>
+        }
+      />
+
+      <Route
+        path="/reset-password"
+        element={
+          <PublicRoute>
+            <ResetPassword />
           </PublicRoute>
         }
       />
@@ -86,332 +109,119 @@ export default function AppRoutes() {
       <Route path="/unauthorized" element={<Unauthorized />} />
       <Route path="/maintenance" element={<Maintenance />} />
 
-
-      {/* ALL AUTHENTICATED PAGES */}
       <Route
         element={
-          <ProtectedRoute
-            allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"]}
-          >
+          <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"]}>
             <AuthLayout />
           </ProtectedRoute>
         }
       >
+        <Route path="/force-change-password" element={<ForceChangePassword />} />
+
         <Route
-          path="/superadmin/dashboard"
+          path="/superadmin"
           element={
             <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-              <SuperAdminDashboard />
+              <Outlet />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="dashboard" element={<SuperAdminDashboard />} />
+          <Route path="add-company-admin" element={<SuperAdminAddCompanyAdmin />} />
+          <Route path="users" element={<SuperAdminUsers />} />
+          <Route path="logs" element={<SuperAdminLogs />} />
+        </Route>
+
         <Route
-          path="/superadmin/add-company-admin"
+          path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-              <SuperAdminAddCompanyAdmin />
+            <ProtectedRoute allowedRoles={["ADMIN"]}>
+              <Outlet />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="projects" element={<AdminProjects />} />
+          <Route path="sla-monitoring" element={<AdminSlaMonitoring />} />
+          <Route path="sla-config" element={<AdminSlaConfiguration />} />
+          <Route path="users" element={<AdminUserManagement />} />
+          <Route path="reports" element={<AdminReports />} />
+        </Route>
+
         <Route
-          path="/superadmin/users"
+          path="/manager"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-              <SuperAdminUsers />
+            <ProtectedRoute allowedRoles={["MANAGER"]}>
+              <Outlet />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="dashboard" element={<ManagerDashboard />} />
+          <Route path="projects" element={<ManagerAssignedProjects />} />
+          <Route path="projects/:projectId" element={<ManagerAssignedProjects />} />
+          <Route path="issues" element={<ManagerIssues />} />
+          <Route path="assign-issues" element={<AssignIssues />} />
+          <Route path="resolved-issues" element={<ManagerResolvedIssues />} />
+          <Route path="sla-monitoring" element={<ManagerSlaMonitoring />} />
+          <Route path="workload" element={<ManagerWorkload />} />
+          <Route path="team-users" element={<Team />} />
+          <Route path="reports" element={<ManagerReports />} />
+        </Route>
+
         <Route
-          path="/superadmin/logs"
+          path="/engineer"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
-              <SuperAdminLogs />
+            <ProtectedRoute allowedRoles={["ENGINEER"]}>
+              <Outlet />
             </ProtectedRoute>
           }
-        />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/profile/edit" element={<EditProfile />} />
-        <Route path="/profile/change-password" element={<ChangePassword />} />
+        >
+          <Route path="dashboard" element={<EngineerDashboard />} />
+          <Route path="project" element={<EngineerProjectDetails />} />
+          <Route path="project/:projectId" element={<EngineerProjectDetails />} />
+          <Route path="issues" element={<MyEngineerIssues />} />
+          <Route path="sla-policies" element={<EngineerSlaPolicies />} />
+          <Route path="workload" element={<EngineerWorkload />} />
+          <Route path="solved-issues" element={<EngineerSolvedIssues />} />
+          <Route path="reports" element={<EngineerReports />} />
+        </Route>
+
         <Route
-          path="/force-change-password"
+          path="/user"
+          element={
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <Outlet />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="dashboard" element={<UserDashboard />} />
+          <Route path="project" element={<UserProjectDetails />} />
+          <Route path="project/:projectId" element={<UserProjectDetails />} />
+          <Route path="create-issue" element={<UserCreateIssue />} />
+          <Route path="issues" element={<UserIssues />} />
+          <Route path="issues/:issueId" element={<UserIssueDetails />} />
+          <Route path="reports" element={<UserReports />} />
+        </Route>
+
+        <Route
+          path="/profile/edit"
           element={
             <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"]}>
-              <ForceChangePassword />
+              <EditProfile />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/projects"
+          path="/profile/change-password"
           element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <AdminProjects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/add-member"
-          element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <PlaceholderPage title="Admin · Add Member" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/sla-monitoring"
-          element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <AdminSlaMonitoring />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/sla-config"
-          element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <AdminSlaConfiguration />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <AdminUserManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/reports"
-          element={
-            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]}>
-              <AdminReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/manager/dashboard" element={<ManagerDashboard />} />
-        <Route
-          path="/manager/projects"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerAssignedProjects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/projects/:projectId"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerAssignedProjects />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/issues"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/issues/:issueId"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <UserIssueDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/assign-issues"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <AssignIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/sla-monitoring"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerSlaMonitoring />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/workload"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerWorkload />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/team-users"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <Team />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/reports"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/manager/resolved-issues"
-          element={
-            <ProtectedRoute allowedRoles={["MANAGER"]}>
-              <ManagerResolvedIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/engineer/dashboard" element={<EngineerDashboard />} />
-        <Route
-          path="/engineer/project"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerProjectDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/project/:projectId"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerProjectDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/issues"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <MyIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/issues/:issueId"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <UserIssueDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/sla-policies"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerSlaPolicies />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/workload"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerWorkload />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/issue-status"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <PlaceholderPage title="Engineer · Issue Status" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/solved-issues"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerSolvedIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/engineer/reports"
-          element={
-            <ProtectedRoute allowedRoles={["ENGINEER"]}>
-              <EngineerReports />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/user/dashboard" element={<UserDashboard />} />
-        <Route
-          path="/user/project"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserProjectDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/project/:projectId"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserProjectDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/create-issue"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserCreateIssue />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/issues"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserIssues />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/issues/:issueId"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserIssueDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/reports"
-          element={
-            <ProtectedRoute allowedRoles={["USER"]}>
-              <UserReports />
+            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN", "MANAGER", "ENGINEER", "USER"]}>
+              <ChangePassword />
             </ProtectedRoute>
           }
         />
       </Route>
 
-      {/* Fallback route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

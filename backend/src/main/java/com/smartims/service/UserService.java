@@ -1,6 +1,7 @@
 package com.smartims.service;
 
 import com.smartims.dto.*;
+import com.smartims.exception.AuthException;
 
 import java.util.List;
 
@@ -9,7 +10,7 @@ public interface UserService {
 //    RegisterResponse registerUser(RegisterRequest request);
     void register(RegisterRequest request);
 
-    LoginResponse login(LoginRequest request);
+    LoginResponse login(LoginRequest request) throws AuthException;
 
     void resetPassword(String email, String newPassword);
 

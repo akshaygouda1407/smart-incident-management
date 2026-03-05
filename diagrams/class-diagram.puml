@@ -1,0 +1,148 @@
+﻿@startuml classDiagram
+title Smart IMS - Class Diagram (High-Level)
+skinparam shadowing false
+hide circle
+hide empty members
+
+package "controller" {
+  class AuthController <<RestController>>
+  class UserController <<RestController>>
+  class ProjectController <<RestController>>
+  class IssueController <<RestController>>
+  class AdminController <<RestController>>
+  class AuditLogController <<RestController>>
+}
+
+package "service" {
+  interface UserService
+  interface ProjectService
+  interface IssueService
+  interface SlaService
+  interface NotificationInboxService
+  interface AuditLogService
+  interface OtpService
+  interface EmailService
+
+  class UserServiceImpl
+  class ProjectServiceImpl
+  class IssueServiceImpl
+  class SlaServiceImpl
+}
+
+package "repository" {
+  interface UserRepository
+  interface ProjectRepository
+  interface IssueRepository
+  interface SlaPolicyRepository
+  interface SlaBreachRepository
+  interface NotificationRepository
+  interface UserNotificationRepository
+  interface IssueActivityRepository
+  interface IssueCommentRepository
+  interface IssueAttachmentRepository
+  interface AuditLogRepository
+  interface OtpVerificationRepository
+  interface ContactRepository
+}
+
+package "entity" {
+  class User {
+    +Long id
+    +String fullName
+    +String email
+    +String company
+    +Role role
+    +boolean enabled
+    +boolean locked
+    +Integer tokenVersion
+    +boolean mustChangePassword
+  }
+
+  class Project {
+    +Long id
+    +String name
+    +String company
+    +boolean active
+    +LocalDateTime createdAt
+  }
+
+  class Issue {
+    +Long id
+    +String title
+    +Severity severity
+    +IssueStatus status
+    +String createdBy
+    +String priorityLevel
+    +LocalDateTime createdAt
+    +LocalDateTime resolvedAt
+    +LocalDateTime slaStartTime
+    +LocalDateTime slaDueTime
+    +boolean slaBreached
+    +Boolean escalated
+    +Boolean triaged
+  }
+
+  class SlaPolicy
+  class SlaBreach
+  class IssueActivity
+  class IssueComment
+  class IssueAttachment
+  class Notification
+  class UserNotification
+  class AuditLog
+  class OtpVerification
+  class ContactMessage
+}
+
+package "enums" {
+  enum Role { SUPER_ADMIN; ADMIN; MANAGER; ENGINEER; USER }
+  enum Severity { LOW; MEDIUM; HIGH; CRITICAL }
+  enum IssueStatus { OPEN; IN_PROGRESS; RESOLVED; CLOSED }
+  enum OtpPurpose { REGISTER; FORGOT_PASSWORD }
+}
+
+' Layer wiring (simplified)
+AuthController ..> UserService
+AuthController ..> OtpService
+UserController ..> UserService
+ProjectController ..> ProjectService
+IssueController ..> IssueService
+AdminController ..> IssueService
+AuditLogController ..> AuditLogRepository
+
+UserServiceImpl ..|> UserService
+ProjectServiceImpl ..|> ProjectService
+IssueServiceImpl ..|> IssueService
+SlaServiceImpl ..|> SlaService
+
+UserServiceImpl ..> UserRepository
+ProjectServiceImpl ..> ProjectRepository
+ProjectServiceImpl ..> UserRepository
+IssueServiceImpl ..> IssueRepository
+IssueServiceImpl ..> ProjectRepository
+IssueServiceImpl ..> UserRepository
+IssueServiceImpl ..> SlaPolicyRepository
+IssueServiceImpl ..> SlaBreachRepository
+
+' Entity relationships
+Project "1" --> "0..1" User : manager
+Project "*" -- "*" User : members
+Issue "*" --> "1" Project
+Issue "0..*" --> "0..1" User : assignedEngineer
+SlaPolicy "*" --> "1" Project
+SlaBreach "*" --> "1" Issue
+IssueActivity "*" --> "1" Issue
+IssueActivity "*" --> "1" User : performedBy
+IssueComment "*" --> "1" Issue
+IssueComment "*" --> "1" User : commentedBy
+IssueAttachment "*" --> "1" Issue
+IssueAttachment "*" --> "1" User : uploadedBy
+UserNotification "*" --> "1" User
+UserNotification "*" --> "1" Notification
+
+User --> Role
+Issue --> Severity
+Issue --> IssueStatus
+OtpVerification --> OtpPurpose
+
+@enduml

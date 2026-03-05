@@ -16,8 +16,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import io.jsonwebtoken.io.IOException;
 
+import java.io.IOException;
 import java.util.List;
 
 @Component
@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
-    ) throws ServletException, IOException, java.io.IOException {
+    ) throws ServletException, IOException {
 
         String header = request.getHeader("Authorization");
 
@@ -110,7 +110,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/actuator");
+
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true; // allow CORS preflight without auth
+        }
+
+        return path.startsWith("/actuator")
+                || path.startsWith("/api/auth/")
+                || path.startsWith("/api/public/")
+                || "/api/contact/submit".equals(path);
     }
 
     private boolean isCompanyBlockedByAdmin(User user) {

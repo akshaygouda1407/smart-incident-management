@@ -1,0 +1,186 @@
+﻿@startuml
+title Smart IMS - Use Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+actor "SUPER_ADMIN" as SA
+actor "ADMIN" as A
+actor "MANAGER" as M
+actor "ENGINEER" as E
+actor "USER" as U
+
+actor "Email/OTP Service" as MAIL <<external>>
+actor "SLA Monitor (Scheduler)" as SLA <<external>>
+
+rectangle "Smart Incident & Issue Management Platform" as SYS {
+
+  package "Authentication" {
+    usecase "Login" as UC_Login
+    usecase "Logout" as UC_Logout
+    usecase "Register (OTP)" as UC_Register
+    usecase "Forgot Password (OTP)" as UC_Forgot
+    usecase "Change Password" as UC_ChangePwd
+  }
+
+  package "Users & Company" {
+    usecase "Create User" as UC_CreateUser
+    usecase "View Users" as UC_ViewUsers
+    usecase "Update User" as UC_UpdateUser
+    usecase "Enable/Disable User" as UC_EnableUser
+    usecase "Lock/Unlock User" as UC_LockUser
+  }
+
+  package "Projects" {
+    usecase "Create Project" as UC_CreateProject
+    usecase "View Projects" as UC_ViewProjects
+    usecase "Update Project" as UC_UpdateProject
+    usecase "Delete Project" as UC_DeleteProject
+  }
+
+  package "Issues" {
+    usecase "Create Issue" as UC_CreateIssue
+    usecase "View Issue(s)" as UC_ViewIssues
+    usecase "Update Issue Details\n(title/description/severity)" as UC_UpdateIssue
+    usecase "Update Issue Status\n(OPEN/IN_PROGRESS/RESOLVED/CLOSED)" as UC_UpdateStatus
+    usecase "Assign Engineer" as UC_Assign
+    usecase "Auto-Assign Engineer" as UC_AutoAssign
+    usecase "Add Comment" as UC_Comment
+    usecase "Upload Attachment" as UC_Attach
+  }
+
+  package "SLA" {
+    usecase "Configure SLA Policy\n(per project + priority)" as UC_SlaConfig
+    usecase "View SLA Status" as UC_SlaStatus
+    usecase "View SLA Compliance Summary" as UC_SlaCompliance
+    usecase "Auto Escalation on\nAT_RISK/BREACHED" as UC_Escalation
+  }
+
+  package "Notifications & Audit" {
+    usecase "View Notifications" as UC_ViewNotifs
+    usecase "Mark Notification Read" as UC_ReadNotif
+    usecase "View Audit Logs" as UC_Audit
+  }
+
+  package "Support" {
+    usecase "Submit Contact Message" as UC_Contact
+  }
+}
+
+' Authentication links
+SA -- UC_Login
+A  -- UC_Login
+M  -- UC_Login
+E  -- UC_Login
+U  -- UC_Login
+
+SA -- UC_Logout
+A  -- UC_Logout
+M  -- UC_Logout
+E  -- UC_Logout
+U  -- UC_Logout
+
+U  -- UC_Register
+U  -- UC_Forgot
+SA -- UC_ChangePwd
+A  -- UC_ChangePwd
+M  -- UC_ChangePwd
+E  -- UC_ChangePwd
+U  -- UC_ChangePwd
+
+MAIL -- UC_Register
+MAIL -- UC_Forgot
+
+' Users & company
+SA -- UC_CreateUser
+SA -- UC_ViewUsers
+SA -- UC_UpdateUser
+SA -- UC_EnableUser
+SA -- UC_LockUser
+
+A  -- UC_CreateUser
+A  -- UC_ViewUsers
+A  -- UC_UpdateUser
+A  -- UC_EnableUser
+A  -- UC_LockUser
+
+M  -- UC_CreateUser
+M  -- UC_ViewUsers
+
+' Projects
+SA -- UC_CreateProject
+SA -- UC_ViewProjects
+SA -- UC_UpdateProject
+SA -- UC_DeleteProject
+
+A  -- UC_CreateProject
+A  -- UC_ViewProjects
+A  -- UC_UpdateProject
+A  -- UC_DeleteProject
+
+M  -- UC_ViewProjects
+E  -- UC_ViewProjects
+U  -- UC_ViewProjects
+
+' Issues
+A -- UC_ViewIssues
+A -- UC_UpdateIssue
+A -- UC_Assign
+
+M -- UC_CreateIssue
+M -- UC_ViewIssues
+M -- UC_UpdateIssue
+M -- UC_UpdateStatus
+M -- UC_Assign
+M -- UC_AutoAssign
+
+E -- UC_ViewIssues
+E -- UC_UpdateStatus
+E -- UC_Comment
+E -- UC_Attach
+
+U -- UC_CreateIssue
+U -- UC_ViewIssues
+U -- UC_Comment
+U -- UC_Attach
+
+' SLA
+SA -- UC_SlaConfig
+A  -- UC_SlaConfig
+
+SA -- UC_SlaStatus
+A  -- UC_SlaStatus
+M  -- UC_SlaStatus
+E  -- UC_SlaStatus
+U  -- UC_SlaStatus
+
+SA -- UC_SlaCompliance
+A  -- UC_SlaCompliance
+M  -- UC_SlaCompliance
+
+SLA -- UC_Escalation
+UC_SlaStatus .> UC_Escalation : <<include>>
+
+' Notifications + Audit
+SA -- UC_ViewNotifs
+A  -- UC_ViewNotifs
+M  -- UC_ViewNotifs
+E  -- UC_ViewNotifs
+U  -- UC_ViewNotifs
+
+SA -- UC_ReadNotif
+A  -- UC_ReadNotif
+M  -- UC_ReadNotif
+E  -- UC_ReadNotif
+U  -- UC_ReadNotif
+
+SA -- UC_Audit
+A  -- UC_Audit
+M -- UC_Audit
+E -- UC_Audit
+U -- UC_Audit
+
+' Support
+U -- UC_Contact
+
+@enduml

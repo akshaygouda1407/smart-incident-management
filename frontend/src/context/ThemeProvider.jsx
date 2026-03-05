@@ -33,6 +33,7 @@ export function ThemeProvider({ children }) {
     location.pathname === "/" ||
     location.pathname === "/maintenance" ||
     location.pathname === "/unauthorized" ||
+    location.pathname === "/register" ||
     location.pathname === "/authentication/register" ||
     location.pathname === "/forgot-password" ||
     location.pathname === "/reset-password";
@@ -40,10 +41,11 @@ export function ThemeProvider({ children }) {
     location.pathname
   );
 
+  const savedUserTheme = getSavedTheme(storageKey);
   const theme =
     themeOverrides[storageKey] ||
-    getSavedTheme(storageKey) ||
-    getSavedTheme(LEGACY_THEME_KEY) ||
+    savedUserTheme ||
+    (user && !savedUserTheme ? "light" : getSavedTheme(LEGACY_THEME_KEY)) ||
     getSystemTheme();
 
   const setTheme = (nextTheme) => {

@@ -20,16 +20,16 @@ spring:
       com.smartims: DEBUG
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smart_ims}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:root}
     driver-class-name: org.postgresql.Driver
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${GMAIL_USERNAME}
-    password: ${GMAIL_PASSWORD}
+    username: ${GMAIL_USERNAME:${MAIL_USERNAME:}}
+    password: ${GMAIL_PASSWORD:${MAIL_PASSWORD:}}
     properties:
       mail:
         smtp:
@@ -51,11 +51,11 @@ server:
 
 app:
   mail:
-    from: ${GMAIL_USERNAME}
-    admin: ${GMAIL_PASSWORD}
+    from: ${MAIL_FROM:${GMAIL_USERNAME:${MAIL_USERNAME:no-reply@smartims.local}}}
   frontend:
     login-url: ${FRONTEND_LOGIN_URL:http://localhost:5173/login}
 
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION}
+  secret: ${JWT_SECRET:ThisIsASecretKeyForJwtSigningMustBeAtLeast32Chars}
+  expiration:
+    ms: ${JWT_EXPIRATION:3600000}
