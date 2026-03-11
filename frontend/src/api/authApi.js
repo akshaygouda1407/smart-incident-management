@@ -1,8 +1,8 @@
-import api from "./axios";
+import api, { API_ORIGIN } from "./axios";
 import axios from "axios";
 
 // Base URL constant for consistency
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = `${API_ORIGIN}/api`;
 
 // Public endpoints (no auth token needed)
 // These use direct axios to avoid response unwrapping from api instance

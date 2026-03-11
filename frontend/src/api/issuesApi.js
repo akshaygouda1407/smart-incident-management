@@ -1,4 +1,4 @@
-import api from "./axios";
+import api, { API_ORIGIN } from "./axios";
 
 // Backend controller: /api/issues
 export const getAllIssues = () => api.get("/issues");
@@ -18,9 +18,7 @@ export const uploadIssueAttachment = (issueId, file) => {
 };
 
 export const getIssueAttachmentDownloadUrl = (downloadUrl) => {
-  const base = String(api.defaults.baseURL || "http://localhost:8080/api");
-  const origin = base.replace(/\/api\/?$/, "/");
-  return new URL(downloadUrl, origin).toString();
+  return new URL(downloadUrl, `${API_ORIGIN}/`).toString();
 };
 
 export const getSlaComplianceSummary = () => api.get("/issues/sla/compliance");

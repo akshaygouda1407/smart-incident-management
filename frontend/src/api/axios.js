@@ -1,7 +1,11 @@
 import axios from "axios";
 
+export const API_ORIGIN = String(
+  import.meta.env.VITE_API_URL || "http://localhost:8080"
+).replace(/\/$/, "");
+
 const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: `${API_ORIGIN}/api`,
 });
 
 api.interceptors.request.use((config) => {
