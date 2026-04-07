@@ -5,20 +5,6 @@ spring:
   application:
     name: smart-incident-management
 
-  management:
-    endpoints:
-      web:
-        exposure:
-          include: health,info,metrics,prometheus
-    endpoint:
-      health:
-        show-details: always
-
-  logging:
-    level:
-      root: INFO
-      com.smartims: DEBUG
-
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -45,6 +31,25 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# ✅ OUTSIDE spring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.smartims: DEBUG
 
 server:
   port: ${PORT:8080}
