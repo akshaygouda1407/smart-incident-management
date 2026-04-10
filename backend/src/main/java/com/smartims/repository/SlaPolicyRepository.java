@@ -17,5 +17,7 @@ public interface SlaPolicyRepository extends JpaRepository<SlaPolicy, Long> {
 
     List<SlaPolicy> findByProjectCompany(String company);
 
+    long deleteByProjectCompany(String company);
+
 }
 

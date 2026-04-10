@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, RefreshCcw, ShieldCheck, UserRound, UsersRound, Wrench } from "lucide-react";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllUsers } from "../../api/userApi";
 import { showError } from "../../utils/toast";
 
 function getApiMessage(err) {
@@ -28,28 +27,17 @@ function splitMembersByRole(memberDetails, memberNames, userLookup) {
 
   details.forEach((member) => {
     const raw = String(member?.fullName || "").trim();
-    const resolved =
-      userLookup.byEmail.get(raw.toLowerCase()) ||
-      userLookup.byName.get(raw.toLowerCase()) ||
-      null;
-    const role = String(member?.role || resolved?.role || "").toUpperCase();
-    const displayName = resolved?.fullName || raw || "-";
+    const role = String(member?.role || "").toUpperCase();
+    const displayName = raw || "-";
     if (role === "ENGINEER") engineers.push(displayName);
-    if (role === "USER") users.push(displayName);
+    if (role === "USER" || role === "") users.push(displayName);
   });
 
   if (!details.length && Array.isArray(memberNames)) {
     memberNames.forEach((value) => {
       const raw = String(value || "").trim();
       if (!raw) return;
-      const resolved =
-        userLookup.byEmail.get(raw.toLowerCase()) ||
-        userLookup.byName.get(raw.toLowerCase()) ||
-        null;
-      const role = String(resolved?.role || "").toUpperCase();
-      const displayName = resolved?.fullName || raw;
-      if (role === "ENGINEER") engineers.push(displayName);
-      if (role === "USER") users.push(displayName);
+      users.push(raw);
     });
   }
 
@@ -62,8 +50,7 @@ function splitMembersByRole(memberDetails, memberNames, userLookup) {
 function resolveDisplayName(value, lookup) {
   const raw = String(value || "").trim();
   if (!raw) return "-";
-  const resolved = lookup.byEmail.get(raw.toLowerCase()) || lookup.byName.get(raw.toLowerCase()) || null;
-  return resolved?.fullName || raw;
+  return raw;
 }
 
 function MemberRows({ items, emptyText }) {
@@ -86,7 +73,6 @@ function MemberRows({ items, emptyText }) {
 
 export default function Team() {
   const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -96,16 +82,14 @@ export default function Team() {
     setLoading(true);
     setError("");
     try {
-      const [projectRes, userRes] = await Promise.all([getAllProjects(), getAllUsers()]);
+      const projectRes = await getAllProjects();
       const projectList = unwrapArrayData(projectRes);
       setProjects(projectList);
-      setUsers(unwrapArrayData(userRes));
     } catch (err) {
       const msg = getApiMessage(err);
       setError(msg);
       showError(msg);
       setProjects([]);
-      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -116,14 +100,8 @@ export default function Team() {
   }, []);
 
   const userLookup = useMemo(() => {
-    const byEmail = new Map();
-    const byName = new Map();
-    users.forEach((u) => {
-      if (u?.email) byEmail.set(String(u.email).toLowerCase(), u);
-      if (u?.fullName) byName.set(String(u.fullName).toLowerCase(), u);
-    });
-    return { byEmail, byName };
-  }, [users]);
+    return { byEmail: new Map(), byName: new Map() };
+  }, []);
 
   const normalizedProjects = useMemo(
     () =>

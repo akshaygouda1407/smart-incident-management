@@ -5,6 +5,7 @@ import com.smartims.dto.IssueCommentRequest;
 import com.smartims.dto.IssueCommentResponse;
 import com.smartims.service.IssueCommentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class IssueCommentController {
 
     // Add comment
     @PostMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<IssueCommentResponse> addComment(
             @PathVariable Long issueId,
             @RequestBody IssueCommentRequest request) {
@@ -33,6 +35,7 @@ public class IssueCommentController {
 
     // Get comments
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<List<IssueCommentResponse>> getComments(
             @PathVariable Long issueId) {
 

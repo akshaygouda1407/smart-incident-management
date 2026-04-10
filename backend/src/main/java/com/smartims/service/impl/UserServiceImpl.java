@@ -3,9 +3,17 @@ package com.smartims.service.impl;
 import com.smartims.dto.*;
 import com.smartims.entity.User;
 import com.smartims.enums.Role;
+import com.smartims.exception.BadRequestException;
 import com.smartims.exception.AuthException;
+import com.smartims.exception.UnauthorizedException;
+import com.smartims.repository.IssueActivityRepository;
+import com.smartims.repository.IssueAttachmentRepository;
+import com.smartims.repository.IssueCommentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.ProjectRepository;
+import com.smartims.repository.SlaBreachRepository;
+import com.smartims.repository.SlaPolicyRepository;
+import com.smartims.repository.UserNotificationRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.security.JwtService;
 import com.smartims.service.AuditLogService;
@@ -37,6 +45,12 @@ public class UserServiceImpl implements UserService {
     private final NotificationInboxService notificationInboxService;
     private final ProjectRepository projectRepository;
     private final IssueRepository issueRepository;
+    private final UserNotificationRepository userNotificationRepository;
+    private final IssueCommentRepository issueCommentRepository;
+    private final IssueActivityRepository issueActivityRepository;
+    private final IssueAttachmentRepository issueAttachmentRepository;
+    private final SlaPolicyRepository slaPolicyRepository;
+    private final SlaBreachRepository slaBreachRepository;
 
     @Value("${app.frontend.login-url:http://localhost:5173/login}")
     private String frontendLoginUrl;
@@ -204,8 +218,15 @@ public class UserServiceImpl implements UserService {
             targetCompany = creator.getCompany();
         }
 
+        if (targetRole != Role.SUPER_ADMIN) {
+            if (targetCompany == null || targetCompany.isBlank()) {
+                throw new BadRequestException("Company is required for non-super-admin users");
+            }
+            targetCompany = targetCompany.trim();
+        }
+
         // Restriction: Only 1 ADMIN per company
-        if (targetRole == Role.ADMIN && targetCompany != null && !targetCompany.trim().isEmpty()) {
+        if (targetRole == Role.ADMIN) {
             long existingAdminCount = userRepository.findByRoleAndCompany(Role.ADMIN, targetCompany).size();
             if (existingAdminCount > 0) {
                 throw new RuntimeException("Company \"" + targetCompany + "\" already has an admin. Only 1 admin per company is allowed.");
@@ -266,15 +287,12 @@ public class UserServiceImpl implements UserService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth != null ? auth.getName() : null;
 
-        if (email == null) {
-            return userRepository.findAll()
-                    .stream()
-                    .map(this::mapToResponse)
-                    .toList();
+        if (email == null || email.isBlank()) {
+            throw new UnauthorizedException("Authenticated user not found");
         }
 
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         if (currentUser.getRole() == Role.SUPER_ADMIN) {
             return userRepository.findAll()
@@ -286,10 +304,7 @@ public class UserServiceImpl implements UserService {
         String company = currentUser.getCompany();
 
         if (company == null || company.isBlank()) {
-            return userRepository.findAll()
-                    .stream()
-                    .map(this::mapToResponse)
-                    .toList();
+            throw new UnauthorizedException("Company not set for user");
         }
 
         return userRepository.findByCompany(company)
@@ -382,6 +397,23 @@ public class UserServiceImpl implements UserService {
         // Check access permissions
         validateUserAccess(user);
 
+        // If company ADMIN is deleted, delete ALL company data (projects, issues, users).
+        if (user.getRole() == Role.ADMIN) {
+            String company = user.getCompany();
+            if (company != null && !company.isBlank()) {
+                deleteCompanyData(company.trim());
+                return;
+            }
+        }
+
+        // Remove dependent rows first (notifications/comments/attachments/activities)
+        // to satisfy FK constraints.
+        userNotificationRepository.deleteByUser_Id(user.getId());
+        issueCommentRepository.deleteByUser_Id(user.getId());
+        issueCommentRepository.deleteByCommentedBy_Id(user.getId());
+        issueActivityRepository.deleteByPerformedBy_Id(user.getId());
+        issueAttachmentRepository.deleteByUploadedBy_Id(user.getId());
+
         // Clear references first to avoid FK constraint failures on delete.
         var managedProjects = projectRepository.findByManager(user);
         if (!managedProjects.isEmpty()) {
@@ -415,6 +447,51 @@ public class UserServiceImpl implements UserService {
                 "User account deleted: " + user.getEmail(),
                 user,
                 false
+        );
+    }
+
+    private void deleteCompanyData(String company) {
+        // Delete notification inbox items for all users in the company first (FK to users)
+        userNotificationRepository.deleteByUser_Company(company);
+
+        // Delete issue-related children for company issues
+        issueAttachmentRepository.deleteByIssue_Project_Company(company);
+        issueCommentRepository.deleteByIssue_Project_Company(company);
+        issueActivityRepository.deleteByIssue_Project_Company(company);
+        slaBreachRepository.deleteByIssue_Project_Company(company);
+
+        // Delete SLA policies for company projects
+        slaPolicyRepository.deleteByProjectCompany(company);
+
+        // Delete issues for company projects
+        issueRepository.deleteByProject_Company(company);
+
+        // Clear project member links then delete projects
+        var projects = projectRepository.findByCompany(company);
+        if (!projects.isEmpty()) {
+            projects.forEach(p -> {
+                if (p.getMembers() != null) {
+                    p.getMembers().clear();
+                }
+                p.setManager(null);
+            });
+            projectRepository.saveAll(projects);
+            projectRepository.deleteAll(projects);
+        }
+
+        // Finally delete all non-super-admin users in the company (includes the admin being deleted)
+        var companyUsers = userRepository.findByCompany(company).stream()
+                .filter(u -> u.getRole() != Role.SUPER_ADMIN)
+                .toList();
+        if (!companyUsers.isEmpty()) {
+            userRepository.deleteAll(companyUsers);
+        }
+
+        auditLogService.logSystem(
+                "COMPANY_DELETED",
+                "Company data deleted because company admin was deleted: " + company,
+                null,
+                "COMPANY"
         );
     }
 

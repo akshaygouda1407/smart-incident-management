@@ -66,6 +66,7 @@ public class IssueController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<IssueResponse> getIssueById(
             @PathVariable Long id) {
 
@@ -76,6 +77,7 @@ public class IssueController {
     }
 
     @GetMapping("/{id}/issues")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER')")
     public ApiResponse<List<IssueResponse>> getEngineerIssues(
             @PathVariable Long id) {
 
@@ -86,6 +88,7 @@ public class IssueController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<List<IssueResponse>> getAllIssues() {
 
         return ApiResponse.success(
@@ -181,6 +184,7 @@ public class IssueController {
     }
 
     @GetMapping("/{id}/sla-status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<SlaStatusResponse> getSlaStatus(
             @PathVariable Long id) {
 
@@ -193,6 +197,7 @@ public class IssueController {
     }
 
     @GetMapping("/sla/compliance")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public ApiResponse<SlaComplianceResponse> getSlaCompliance() {
 
         SlaComplianceResponse response =

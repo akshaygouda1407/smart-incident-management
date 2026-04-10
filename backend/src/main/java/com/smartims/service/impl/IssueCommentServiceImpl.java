@@ -8,6 +8,7 @@ import com.smartims.enums.Role;
 import com.smartims.repository.IssueCommentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.security.IssueAccessGuard;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueCommentService;
 import com.smartims.service.NotificationInboxService;
@@ -26,6 +27,7 @@ public class IssueCommentServiceImpl implements IssueCommentService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationInboxService notificationInboxService;
+    private final IssueAccessGuard issueAccessGuard;
 
     @Override
     public IssueCommentResponse addComment(Long issueId, String commentText) {
@@ -35,8 +37,7 @@ public class IssueCommentServiceImpl implements IssueCommentService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
 
-        Issue issue = issueRepository.findById(issueId)
-                .orElseThrow(() -> new RuntimeException("Issue not found"));
+        Issue issue = issueAccessGuard.requireIssueAccess(issueId);
 
         IssueComment comment = new IssueComment();
         comment.setComment(commentText);
@@ -67,6 +68,8 @@ public class IssueCommentServiceImpl implements IssueCommentService {
         String email = AuthUtil.getLoggedInUser();
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
+
+        issueAccessGuard.requireIssueAccess(issueId);
 
         return issueCommentRepository.findByIssueIdOrderByCreatedAtAsc(issueId)
                 .stream()

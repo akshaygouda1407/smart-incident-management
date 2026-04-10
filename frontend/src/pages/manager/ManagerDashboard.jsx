@@ -1,8 +1,7 @@
 import { createElement, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, FolderKanban, RefreshCcw, Ticket, Users } from "lucide-react";
-import { getAllIssues } from "../../api/issuesApi";
+import { getAllIssues, getManagerAssignmentBoard } from "../../api/issuesApi";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllUsers } from "../../api/userApi";
 import { showError } from "../../utils/toast";
 
 function getApiMessage(err) {
@@ -52,6 +51,30 @@ function getIssueAssignedTo(issue) {
     issue.assignee?.id ||
     issue.assignee ||
     ""
+  );
+}
+
+function filterIssuesByProjects(issueList, projectList) {
+  const projectIds = new Set((projectList || []).map((p) => String(p?.id)).filter(Boolean));
+  return (issueList || []).filter((issue) => projectIds.has(String(issue?.projectId || "")));
+}
+
+function unwrapSingleData(res) {
+  if (!res) return null;
+  if (res?.data?.data !== undefined) return res.data.data;
+  if (res?.data !== undefined) return res.data;
+  return res;
+}
+
+function engineerNameFromIssue(issue) {
+  if (!issue) return "-";
+  return (
+    issue.assignedEngineerName ||
+    issue.assigneeName ||
+    issue.assignedToName ||
+    issue.assignee?.fullName ||
+    issue.assignee?.name ||
+    "-"
   );
 }
 
@@ -334,15 +357,15 @@ export default function ManagerDashboard() {
   // Helper function to get engineer name from issue
   const getEngineerName = (issue) => {
     const assignedTo = getIssueAssignedTo(issue);
-    if (!assignedTo) return "-";
+    if (!assignedTo) return engineerNameFromIssue(issue);
     
     const user = userMap.get(assignedTo);
     if (user) {
       return user.fullName || user.email || "-";
     }
     
-    // If no user found by ID, return "-"
-    return "-";
+    // Fallback to issue payload name when ID lookup is unavailable
+    return engineerNameFromIssue(issue);
   };
 
   const fetchData = async ({ silent = false } = {}) => {
@@ -350,14 +373,26 @@ export default function ManagerDashboard() {
     if (silent) setRefreshing(true);
     setError("");
     try {
-      const [usersRes, projectsRes, issuesRes] = await Promise.all([
-        getAllUsers(),
+      const [projectsRes, issuesRes, boardRes] = await Promise.all([
         getAllProjects(),
-        getAllIssues()
+        getAllIssues(),
+        getManagerAssignmentBoard()
       ]);
-      setUsers(unwrapApiData(usersRes));
-      setProjects(unwrapApiData(projectsRes));
-      setIssues(unwrapApiData(issuesRes));
+      const projectList = unwrapApiData(projectsRes);
+      const issueList = unwrapApiData(issuesRes);
+      setProjects(projectList);
+      setIssues(filterIssuesByProjects(issueList, projectList));
+      const board = unwrapSingleData(boardRes) || {};
+      const engineers = Array.isArray(board?.engineers) ? board.engineers : [];
+      setUsers(
+        engineers
+          .filter((eng) => eng?.engineerId != null)
+          .map((eng) => ({
+            id: eng.engineerId,
+            fullName: eng.engineerName || "",
+            email: eng.engineerEmail || ""
+          }))
+      );
       setLastUpdated(new Date());
     } catch (err) {
       const msg = getApiMessage(err);

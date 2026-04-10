@@ -7,6 +7,7 @@ import com.smartims.entity.User;
 import com.smartims.repository.IssueAttachmentRepository;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.security.IssueAccessGuard;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueAttachmentService;
 import com.smartims.service.NotificationInboxService;
@@ -31,6 +32,7 @@ public class IssueAttachmentServiceImpl implements IssueAttachmentService {
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
     private final NotificationInboxService notificationInboxService;
+    private final IssueAccessGuard issueAccessGuard;
 
     private final Path root = Paths.get("uploads/issues");
 
@@ -42,8 +44,7 @@ public class IssueAttachmentServiceImpl implements IssueAttachmentService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
 
-        Issue issue = issueRepository.findById(issueId)
-                .orElseThrow(() -> new RuntimeException("Issue not found"));
+        Issue issue = issueAccessGuard.requireIssueAccess(issueId);
 
         try {
             Files.createDirectories(root);
@@ -84,6 +85,7 @@ public class IssueAttachmentServiceImpl implements IssueAttachmentService {
 
     @Override
     public List<IssueAttachmentResponse> getAttachments(Long issueId) {
+        issueAccessGuard.requireIssueAccess(issueId);
         return attachmentRepository.findByIssueId(issueId)
                 .stream()
                 .map(this::map)
@@ -95,6 +97,11 @@ public class IssueAttachmentServiceImpl implements IssueAttachmentService {
 
         IssueAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
+
+        if (attachment.getIssue() == null || attachment.getIssue().getId() == null) {
+            throw new RuntimeException("Attachment not found");
+        }
+        issueAccessGuard.requireIssueAccess(attachment.getIssue().getId());
 
         try {
             Path path = Paths.get(attachment.getFilePath());

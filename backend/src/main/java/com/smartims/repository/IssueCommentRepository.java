@@ -8,4 +8,10 @@ import java.util.List;
 public interface IssueCommentRepository extends JpaRepository<IssueComment, Long> {
 
     List<IssueComment> findByIssueIdOrderByCreatedAtAsc(Long issueId);
+
+    long deleteByUser_Id(Long userId);
+
+    long deleteByCommentedBy_Id(Long userId);
+
+    long deleteByIssue_Project_Company(String company);
 }

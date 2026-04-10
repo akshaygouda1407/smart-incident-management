@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { CalendarDays, Eye, RefreshCcw, SquarePen, X } from "lucide-react";
 import { getAllIssues, updateIssueDetails, updateIssueSeverity } from "../../api/issuesApi";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllUsers } from "../../api/userApi";
 import { showError, showSuccess } from "../../utils/toast";
 
 const STATUS_OPTIONS = ["CREATED", "OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"];
@@ -31,6 +30,11 @@ function unwrapData(res) {
   if (res?.data?.data !== undefined) return res.data.data;
   if (res?.data !== undefined) return res.data;
   return res;
+}
+
+function filterIssuesByProjects(issueList, projectList) {
+  const projectIds = new Set((projectList || []).map((p) => String(p?.id)).filter(Boolean));
+  return (issueList || []).filter((issue) => projectIds.has(String(issue?.projectId || "")));
 }
 
 function formatStatus(value) {
@@ -109,7 +113,6 @@ function Modal({ open, title, children, onClose }) {
 export default function ManagerIssues() {
   const [issues, setIssues] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [userEmailSet, setUserEmailSet] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -135,17 +138,11 @@ export default function ManagerIssues() {
     setLoading(true);
     setError("");
     try {
-      const [issueRes, projectRes, userRes] = await Promise.all([getAllIssues(), getAllProjects(), getAllUsers()]);
+      const [issueRes, projectRes] = await Promise.all([getAllIssues(), getAllProjects()]);
+      const projectList = unwrapArrayData(projectRes);
       const issueList = unwrapArrayData(issueRes);
-      setIssues(issueList);
-      setProjects(unwrapArrayData(projectRes));
-      const userEmails = new Set(
-        unwrapArrayData(userRes)
-          .filter((u) => String(u?.role || "").toUpperCase() === "USER")
-          .map((u) => String(u?.email || "").toLowerCase())
-          .filter(Boolean)
-      );
-      setUserEmailSet(userEmails);
+      setProjects(projectList);
+      setIssues(filterIssuesByProjects(issueList, projectList));
     } catch (err) {
       const msg = getApiMessage(err);
       setError(msg);
@@ -170,8 +167,8 @@ export default function ManagerIssues() {
   const filteredIssues = useMemo(() => {
     const q = search.trim().toLowerCase();
     return issues.filter((issue) => {
-      const createdBy = String(issue?.createdBy || "").toLowerCase();
-      const isUserCreated = userEmailSet.size === 0 ? true : userEmailSet.has(createdBy);
+      const creatorRole = String(issue?.createdByRole || "").toUpperCase();
+      const isUserCreated = creatorRole ? creatorRole === "USER" : true;
       if (!isUserCreated) return false;
       const projectId = String(issue?.projectId || "");
       const projectName = issue?.projectName || projectNameById.get(projectId) || "";
@@ -184,7 +181,7 @@ export default function ManagerIssues() {
       const matchesSearch = q ? haystack.includes(q) : true;
       return matchesProject && matchesStatus && matchesSeverity && matchesSearch;
     });
-  }, [issues, userEmailSet, projectFilter, statusFilter, severityFilter, search, projectNameById]);
+  }, [issues, projectFilter, statusFilter, severityFilter, search, projectNameById]);
 
   const handleSaveSeverity = async (issue, nextSeverityRaw) => {
     const nextSeverity = String(nextSeverityRaw || "").toUpperCase();

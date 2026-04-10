@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/sla")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminSlaController {
 
     private final AdminSlaService adminSlaService;

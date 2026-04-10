@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +21,7 @@ public class IssueAttachmentController {
 
     // Upload
     @PostMapping("/api/issues/{issueId}/attachments")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<IssueAttachmentResponse> upload(
             @PathVariable Long issueId,
             @RequestParam("file") MultipartFile file) {
@@ -35,6 +37,7 @@ public class IssueAttachmentController {
 
     // List
     @GetMapping("/api/issues/{issueId}/attachments")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ApiResponse<List<IssueAttachmentResponse>> list(
             @PathVariable Long issueId) {
 
@@ -49,6 +52,7 @@ public class IssueAttachmentController {
 
     // Download
     @GetMapping("/api/issues/attachments/{id}/download")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER','ENGINEER','USER')")
     public ResponseEntity<Resource> download(@PathVariable Long id) {
 
         Resource file = attachmentService.download(id);

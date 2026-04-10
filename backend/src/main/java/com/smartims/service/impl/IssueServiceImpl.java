@@ -9,6 +9,7 @@ import com.smartims.dto.SlaStatusResponse;
 import com.smartims.repository.SlaBreachRepository;
 import com.smartims.entity.*;
 import com.smartims.enums.IssueStatus;
+import com.smartims.enums.Role;
 import com.smartims.enums.Severity;
 import com.smartims.exception.ResourceNotFoundException;
 import com.smartims.exception.UnauthorizedException;
@@ -59,6 +60,14 @@ public class IssueServiceImpl implements IssueService {
 
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        if (currentUser.getRole() == Role.ADMIN) {
+            String company = requireCompany(currentUser);
+            String projectCompany = project.getCompany();
+            if (projectCompany == null || !company.equals(projectCompany)) {
+                throw new UnauthorizedException("Access denied: Project belongs to a different company");
+            }
+        }
 
         if (!currentUser.getRole().name().equals("ADMIN")
                 && !project.getManager().equals(currentUser)
@@ -128,6 +137,23 @@ public class IssueServiceImpl implements IssueService {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new RuntimeException("Project not found"));
+
+        if (currentUser.getRole() != Role.SUPER_ADMIN) {
+            String company = requireCompany(currentUser);
+            String projectCompany = project.getCompany();
+            if (projectCompany == null || !company.equals(projectCompany)) {
+                throw new UnauthorizedException("Access denied for this project");
+            }
+        }
+
+        if (currentUser.getRole() == Role.ADMIN) {
+            String company = requireCompany(currentUser);
+            String projectCompany = project.getCompany();
+            if (projectCompany == null || !company.equals(projectCompany)) {
+                throw new UnauthorizedException("Access denied for this project");
+            }
+            return issueRepository.findByProject(project);
+        }
 
         if (currentUser.getRole().name().equals("ADMIN")
                 || (currentUser.getRole().name().equals("MANAGER")
@@ -229,41 +255,43 @@ public class IssueServiceImpl implements IssueService {
         org.springframework.security.core.Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth != null ? auth.getName() : null;
 
-        // If no authentication, return all issues (shouldn't happen in practice)
-        if (email == null) {
-            return issueRepository.findAll()
-                    .stream()
-                    .map(this::toIssueResponse)
-                    .toList();
+        if (email == null || email.isBlank()) {
+            throw new UnauthorizedException("Authenticated user not found");
         }
 
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         List<Issue> issues;
 
         // SUPER_ADMIN can see all issues
-        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
             issues = issueRepository.findAll();
         }
-        // ADMIN can see all issues
-        else if (currentUser.getRole().name().equals("ADMIN")) {
-            issues = issueRepository.findAll();
+        // ADMIN can see issues from their company only
+        else if (currentUser.getRole() == Role.ADMIN) {
+            issues = issueRepository.findByCompany(requireCompany(currentUser));
         }
         // MANAGER can see only issues in their projects
-        else if (currentUser.getRole().name().equals("MANAGER")) {
+        else if (currentUser.getRole() == Role.MANAGER) {
             List<Project> managerProjects = projectRepository.findByManager(currentUser);
             issues = managerProjects.stream()
                     .flatMap(project -> issueRepository.findByProject(project).stream())
                     .toList();
         }
         // ENGINEER can see only issues assigned to them
-        else if (currentUser.getRole().name().equals("ENGINEER")) {
-            issues = issueRepository.findByAssignedEngineer(currentUser);
+        else if (currentUser.getRole() == Role.ENGINEER) {
+            issues = issueRepository.findByAssignedEngineerAndProject_Company(
+                    currentUser,
+                    requireCompany(currentUser)
+            );
         }
         // USER can see issues created by them
-        else if (currentUser.getRole().name().equals("USER")) {
-            issues = issueRepository.findByCreatedBy(currentUser.getEmail());
+        else if (currentUser.getRole() == Role.USER) {
+            issues = issueRepository.findByCreatedByAndProject_Company(
+                    currentUser.getEmail(),
+                    requireCompany(currentUser)
+            );
         } else {
             issues = List.of();
         }
@@ -450,10 +478,53 @@ public class IssueServiceImpl implements IssueService {
 
     @Override
     public List<IssueResponse> getIssuesByEngineer(Long engineerId) {
-        return issueRepository.findByAssignedEngineerId(engineerId)
-                .stream()
-                .map(this::toIssueResponse)
-                .toList();
+        User currentUser = getCurrentUser();
+
+        User engineer = userRepository.findById(engineerId)
+                .orElseThrow(() -> new UnauthorizedException("Engineer not found"));
+
+        if (engineer.getRole() != Role.ENGINEER) {
+            throw new UnauthorizedException("Selected user is not an engineer");
+        }
+
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
+            return issueRepository.findByAssignedEngineer(engineer)
+                    .stream()
+                    .map(this::toIssueResponse)
+                    .toList();
+        }
+
+        String company = requireCompany(currentUser);
+        if (engineer.getCompany() == null || !company.equals(engineer.getCompany().trim())) {
+            throw new UnauthorizedException("Access denied");
+        }
+
+        if (currentUser.getRole() == Role.ADMIN) {
+            return issueRepository.findByAssignedEngineerAndProject_Company(engineer, company)
+                    .stream()
+                    .map(this::toIssueResponse)
+                    .toList();
+        }
+
+        if (currentUser.getRole() == Role.MANAGER) {
+            List<Project> managerProjects = projectRepository.findByManagerAndCompany(currentUser, company);
+            return managerProjects.stream()
+                    .flatMap(p -> issueRepository.findByProjectAndAssignedEngineer(p, engineer).stream())
+                    .map(this::toIssueResponse)
+                    .toList();
+        }
+
+        if (currentUser.getRole() == Role.ENGINEER) {
+            if (currentUser.getId() == null || !currentUser.getId().equals(engineer.getId())) {
+                throw new UnauthorizedException("Access denied");
+            }
+            return issueRepository.findByAssignedEngineerAndProject_Company(engineer, company)
+                    .stream()
+                    .map(this::toIssueResponse)
+                    .toList();
+        }
+
+        throw new UnauthorizedException("Access denied");
     }
 
     @Override
@@ -824,15 +895,14 @@ public class IssueServiceImpl implements IssueService {
             return;
         }
 
-        // ADMIN can access issues from their company only
-        if (currentUser.getRole().name().equals("ADMIN")) {
-            String userCompany = currentUser.getCompany();
-            String issueProjectManagerCompany = issue.getProject().getManager() != null ? 
-                    issue.getProject().getManager().getCompany() : null;
+        String userCompany = requireCompany(currentUser);
+        String issueCompany = issue.getProject() != null ? issue.getProject().getCompany() : null;
+        if (issueCompany == null || !userCompany.equals(issueCompany)) {
+            throw new UnauthorizedException("Access denied: Issue belongs to a different company");
+        }
 
-            if (userCompany == null || !userCompany.equals(issueProjectManagerCompany)) {
-                throw new UnauthorizedException("Access denied: Issue belongs to a different company");
-            }
+        // ADMIN can access issues from their company only (company already validated above)
+        if (currentUser.getRole().name().equals("ADMIN")) {
             return;
         }
 
@@ -862,5 +932,19 @@ public class IssueServiceImpl implements IssueService {
         }
 
         throw new UnauthorizedException("Access denied");
+    }
+
+    private String requireCompany(User user) {
+        if (user == null) {
+            throw new UnauthorizedException("User not found");
+        }
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            return null;
+        }
+        String company = user.getCompany();
+        if (company == null || company.isBlank()) {
+            throw new UnauthorizedException("Company not set for user");
+        }
+        return company.trim();
     }
 }

@@ -20,7 +20,7 @@ public class UserController {
 
     // POST - Create user
     @PostMapping
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ApiResponse<UserResponse> createUser(
             @RequestBody UserCreateRequest request) {
         UserResponse response = userService.createUser(request);
@@ -33,6 +33,7 @@ public class UserController {
 
     // GET - All users
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ApiResponse<List<UserResponse>> getAllUsers() {
 
         return ApiResponse.success(
@@ -44,6 +45,7 @@ public class UserController {
 
     // GET - User by ID
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ApiResponse<UserResponse> getUserById(
             @PathVariable Long id) {
 
@@ -56,6 +58,7 @@ public class UserController {
 
     // PUT - Update user
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ApiResponse<UserResponse> updateUser(
             @PathVariable Long id,
             @RequestBody UserUpdateRequest request) {
@@ -69,6 +72,7 @@ public class UserController {
 
     // DELETE - Delete user
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ApiResponse<Void> deleteUser(
             @PathVariable Long id) {
 
@@ -82,6 +86,7 @@ public class UserController {
 
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateUserStatus(
             @PathVariable Long id,
             @RequestBody UpdateUserStatusRequest request) {
@@ -99,6 +104,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}/lock")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateUserLockStatus(
             @PathVariable Long id,
             @RequestBody UpdateUserLockRequest request) {

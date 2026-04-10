@@ -8,7 +8,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "projects")
+@Table(
+        name = "projects",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_projects_company_name",
+                        columnNames = {"company", "name"}
+                )
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,7 +28,7 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Column(length = 10000)

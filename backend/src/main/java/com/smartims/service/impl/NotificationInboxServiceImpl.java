@@ -34,9 +34,14 @@ public class NotificationInboxServiceImpl
         List<User> recipients = new ArrayList<>();
 
         // ADMIN → all admins
-        recipients.addAll(
-                userRepository.findByRole(Role.ADMIN)
-        );
+        String company = issue != null && issue.getProject() != null
+                ? issue.getProject().getCompany()
+                : null;
+        if (company != null && !company.isBlank()) {
+            recipients.addAll(
+                    userRepository.findByRoleAndCompany(Role.ADMIN, company.trim())
+            );
+        }
 
         // MANAGER → project manager
         recipients.add(issue.getProject().getManager());
@@ -61,7 +66,10 @@ public class NotificationInboxServiceImpl
         List<User> recipients = new ArrayList<>();
 
         // ADMIN → all admins
-        recipients.addAll(userRepository.findByRole(Role.ADMIN));
+        String company = project != null ? project.getCompany() : null;
+        if (company != null && !company.isBlank()) {
+            recipients.addAll(userRepository.findByRoleAndCompany(Role.ADMIN, company.trim()));
+        }
 
         // MANAGER → project manager
         if (project.getManager() != null) {

@@ -4,6 +4,7 @@ import com.smartims.dto.ApiResponse;
 import com.smartims.dto.NotificationDTO;
 import com.smartims.entity.User;
 import com.smartims.entity.UserNotification;
+import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.UserNotificationRepository;
 import com.smartims.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -62,11 +63,22 @@ public class NotificationController {
     }
 
     @PutMapping("/{id}/read")
-    public ApiResponse<Object> markAsRead(@PathVariable Long id) {
+    public ApiResponse<Object> markAsRead(
+            Authentication auth,
+            @PathVariable Long id) {
+
+        User currentUser = userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         UserNotification notification =
                 userNotificationRepository.findById(id)
                         .orElseThrow();
+
+        if (notification.getUser() == null
+                || notification.getUser().getId() == null
+                || !notification.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("Access denied");
+        }
 
         notification.setRead(true);
         userNotificationRepository.save(notification);
@@ -96,9 +108,24 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Object> deleteNotification(@PathVariable Long id) {
+    public ApiResponse<Object> deleteNotification(
+            Authentication auth,
+            @PathVariable Long id) {
 
-        userNotificationRepository.deleteById(id);
+        User currentUser = userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+
+        UserNotification notification =
+                userNotificationRepository.findById(id)
+                        .orElseThrow();
+
+        if (notification.getUser() == null
+                || notification.getUser().getId() == null
+                || !notification.getUser().getId().equals(currentUser.getId())) {
+            throw new UnauthorizedException("Access denied");
+        }
+
+        userNotificationRepository.delete(notification);
 
         return ApiResponse.success(
                 "Notification deleted successfully",

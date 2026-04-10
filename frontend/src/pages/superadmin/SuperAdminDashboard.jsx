@@ -446,26 +446,27 @@ export default function SuperAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 p-6 text-white shadow-lg">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-gradient-to-r  dark:from-slate-900 dark:via-slate-800 dark:to-indigo-900 p-6 text-slate-800 dark:text-white shadow-md dark:shadow-lg">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="mt-1 text-sm text-slate-200">
+            
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
               Live overview of users, companies, projects, and platform activity.
             </p>
-            <p className="mt-2 text-xs text-slate-300">
+            
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
               Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "-"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => fetchData({ silent: true })}
-            disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 disabled:opacity-60"
-          >
-            <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+
+          <button type="button" onClick={() => fetchData({ silent: true })} disabled={refreshing} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 py-2 text-sm font-semibold disabled:opacity-60 transition">
+            <RefreshCcw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </button>
+
         </div>
       </div>
 

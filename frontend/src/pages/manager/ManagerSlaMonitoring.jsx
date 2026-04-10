@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock3, RefreshCcw, XCircle } from "lucide-react";
 import { getAllIssues, getIssueSlaStatus } from "../../api/issuesApi";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllSlaPolicies } from "../../api/slaApi";
+import { getCurrentUserSlaPolicies } from "../../api/slaApi";
 import { showError } from "../../utils/toast";
 
 function getApiMessage(err) {
@@ -16,8 +16,14 @@ function getApiMessage(err) {
 
 function unwrapData(res) {
   if (!res) return null;
+  if (res?.data?.data !== undefined) return res.data.data;
   if (res?.data !== undefined) return res.data;
   return res;
+}
+
+function filterIssuesByProjects(issueList, projectList) {
+  const projectIds = new Set((projectList || []).map((p) => String(p?.id)).filter(Boolean));
+  return (issueList || []).filter((issue) => projectIds.has(String(issue?.projectId || "")));
 }
 
 function issueCode(issueId) {
@@ -137,14 +143,15 @@ export default function ManagerSlaMonitoring() {
       const [issuesRes, projectsRes, policiesRes] = await Promise.all([
         getAllIssues(),
         getAllProjects(),
-        getAllSlaPolicies()
+        getCurrentUserSlaPolicies()
       ]);
       const issues = Array.isArray(unwrapData(issuesRes)) ? unwrapData(issuesRes) : [];
       const projectList = Array.isArray(unwrapData(projectsRes)) ? unwrapData(projectsRes) : [];
       const policyList = Array.isArray(unwrapData(policiesRes)) ? unwrapData(policiesRes) : [];
+      const scopedIssues = filterIssuesByProjects(issues, projectList);
 
       const withSla = await Promise.all(
-        issues.map(async (issue) => {
+        scopedIssues.map(async (issue) => {
           try {
             const statusRes = await getIssueSlaStatus(issue.id);
             const sla = unwrapData(statusRes) || {};

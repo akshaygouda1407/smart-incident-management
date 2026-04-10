@@ -14,6 +14,12 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findByMembersContaining(User user);
 
-    @Query("SELECT DISTINCT p FROM Project p WHERE p.manager.company = :company OR p.id IN (SELECT m.id FROM Project p JOIN p.members m WHERE m.company = :company)")
+    List<Project> findByManagerAndCompany(User manager, String company);
+
+    List<Project> findByMembersContainingAndCompany(User user, String company);
+
+    boolean existsByNameAndCompany(String name, String company);
+
+    @Query("SELECT p FROM Project p WHERE p.company = :company")
     List<Project> findByCompany(@Param("company") String company);
 }

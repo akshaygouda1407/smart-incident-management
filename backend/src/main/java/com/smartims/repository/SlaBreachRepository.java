@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface SlaBreachRepository extends JpaRepository<SlaBreach, Long> {
 
     boolean existsByIssue(Issue issue);
+
+    long deleteByIssue_Project_Company(String company);
 }

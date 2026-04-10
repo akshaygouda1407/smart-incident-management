@@ -9,4 +9,8 @@ public interface IssueAttachmentRepository
         extends JpaRepository<IssueAttachment, Long> {
 
     List<IssueAttachment> findByIssueId(Long issueId);
+
+    long deleteByUploadedBy_Id(Long userId);
+
+    long deleteByIssue_Project_Company(String company);
 }

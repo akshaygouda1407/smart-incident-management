@@ -6,6 +6,7 @@ import com.smartims.entity.IssueActivity;
 import com.smartims.entity.User;
 import com.smartims.repository.IssueActivityRepository;
 import com.smartims.repository.UserRepository;
+import com.smartims.security.IssueAccessGuard;
 import com.smartims.service.AuditLogService;
 import com.smartims.service.IssueActivityService;
 import com.smartims.util.AuthUtil;
@@ -21,6 +22,7 @@ public class IssueActivityServiceImpl implements IssueActivityService {
     private final IssueActivityRepository issueActivityRepository;
     private final UserRepository userRepository;
     private final AuditLogService auditLogService;
+    private final IssueAccessGuard issueAccessGuard;
 
     @Override
     public void logActivity(Issue issue, String action, String description) {
@@ -49,9 +51,13 @@ public class IssueActivityServiceImpl implements IssueActivityService {
     @Override
     public List<IssueActivityResponse> getTimeline(Long issueId) {
 
+        Issue issue = issueAccessGuard.requireIssueAccess(issueId);
+
         return issueActivityRepository
                 .findByIssueIdOrderByCreatedAtAsc(issueId)
                 .stream()
+                .filter(a -> a != null && a.getIssue() != null && a.getIssue().getId() != null
+                        && a.getIssue().getId().equals(issue.getId()))
                 .map(a -> IssueActivityResponse.builder()
                         .action(a.getAction())
                         .description(a.getDescription())

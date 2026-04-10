@@ -2,7 +2,6 @@ import { createElement, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { CalendarDays, Eye, FolderKanban, ShieldCheck, UserRound, UsersRound, Wrench } from "lucide-react";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllUsers } from "../../api/userApi";
 import { showError } from "../../utils/toast";
 
 function getApiMessage(err) {
@@ -58,28 +57,17 @@ function splitMembersByRole(memberDetails, memberNames, userLookup) {
 
   details.forEach((member) => {
     const rawName = String(member?.fullName || "").trim();
-    const resolvedUser =
-      userLookup.byEmail.get(rawName.toLowerCase()) ||
-      userLookup.byName.get(rawName.toLowerCase()) ||
-      null;
-    const role = String(member?.role || resolvedUser?.role || "").toUpperCase();
-    const name = resolvedUser?.fullName || rawName || "-";
+    const role = String(member?.role || "").toUpperCase();
+    const name = rawName || "-";
     if (role === "ENGINEER") engineers.push(name);
-    if (role === "USER") users.push(name);
+    if (role === "USER" || role === "") users.push(name);
   });
 
   if (details.length === 0 && Array.isArray(memberNames)) {
     memberNames.forEach((value) => {
       const raw = String(value || "").trim();
       if (!raw) return;
-      const resolvedUser =
-        userLookup.byEmail.get(raw.toLowerCase()) ||
-        userLookup.byName.get(raw.toLowerCase()) ||
-        null;
-      const role = String(resolvedUser?.role || "").toUpperCase();
-      const name = resolvedUser?.fullName || raw;
-      if (role === "ENGINEER") engineers.push(name);
-      if (role === "USER") users.push(name);
+      users.push(raw);
     });
   }
 
@@ -114,7 +102,6 @@ export default function ManagerAssignedProjects() {
   const navigate = useNavigate();
   const { projectId } = useParams();
   const [projects, setProjects] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -125,18 +112,11 @@ export default function ManagerAssignedProjects() {
     try {
       const projectRes = await getAllProjects();
       setProjects(unwrapArrayData(projectRes));
-      try {
-        const userRes = await getAllUsers();
-        setAllUsers(unwrapArrayData(userRes));
-      } catch {
-        setAllUsers([]);
-      }
     } catch (err) {
       const msg = getApiMessage(err);
       setError(msg);
       showError(msg);
       setProjects([]);
-      setAllUsers([]);
     } finally {
       setLoading(false);
     }
@@ -147,23 +127,12 @@ export default function ManagerAssignedProjects() {
   }, []);
 
   const userLookup = useMemo(() => {
-    const byEmail = new Map();
-    const byName = new Map();
-    allUsers.forEach((u) => {
-      if (u?.email) byEmail.set(String(u.email).toLowerCase(), u);
-      if (u?.fullName) byName.set(String(u.fullName).toLowerCase(), u);
-    });
-    return { byEmail, byName };
-  }, [allUsers]);
+    return { byEmail: new Map(), byName: new Map() };
+  }, []);
 
   const resolveDisplayName = (value) => {
     const raw = String(value || "").trim();
-    if (!raw) return "-";
-    const resolved =
-      userLookup.byEmail.get(raw.toLowerCase()) ||
-      userLookup.byName.get(raw.toLowerCase()) ||
-      null;
-    return resolved?.fullName || raw;
+    return raw || "-";
   };
 
   const filteredProjects = useMemo(() => {

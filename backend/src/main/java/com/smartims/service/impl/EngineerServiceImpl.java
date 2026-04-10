@@ -4,6 +4,7 @@ import com.smartims.dto.EngineerDashboardResponse;
 import com.smartims.entity.Issue;
 import com.smartims.entity.User;
 import com.smartims.enums.IssueStatus;
+import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.IssueRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.service.AuditLogService;
@@ -31,7 +32,8 @@ public class EngineerServiceImpl implements EngineerService {
 
         EngineerDashboardResponse response = new EngineerDashboardResponse();
 
-        List<Issue> issues = issueRepository.findByAssignedEngineer(engineer);
+        String company = requireCompany(engineer);
+        List<Issue> issues = issueRepository.findByAssignedEngineerAndProject_Company(engineer, company);
 
         response.setTotalAssigned(issues.size());
         response.setOpen(
@@ -53,7 +55,7 @@ public class EngineerServiceImpl implements EngineerService {
         User engineer = userRepository.findByEmail(engineerEmail)
                 .orElseThrow(() -> new RuntimeException("Engineer not found"));
 
-        return issueRepository.findByAssignedEngineer(engineer);
+        return issueRepository.findByAssignedEngineerAndProject_Company(engineer, requireCompany(engineer));
     }
 
     @Override
@@ -94,5 +96,13 @@ public class EngineerServiceImpl implements EngineerService {
                 "Engineer updated issue status from "
                         + oldStatus + " to " + newStatus
         );
+    }
+
+    private String requireCompany(User user) {
+        String company = user.getCompany();
+        if (company == null || company.isBlank()) {
+            throw new UnauthorizedException("Company not set for user");
+        }
+        return company.trim();
     }
 }

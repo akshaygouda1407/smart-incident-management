@@ -6,6 +6,9 @@ import com.smartims.dto.ProjectResponse;
 import com.smartims.dto.UpdateProjectRequest;
 import com.smartims.entity.Project;
 import com.smartims.entity.User;
+import com.smartims.enums.Role;
+import com.smartims.exception.BadRequestException;
+import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.ProjectRepository;
 import com.smartims.repository.UserRepository;
 import com.smartims.service.AuditLogService;
@@ -41,21 +44,51 @@ public class ProjectServiceImpl implements ProjectService {
             throw new IllegalArgumentException("Manager ID must not be null");
         }
 
+        User currentUser = getCurrentUser();
+
         User manager = userRepository.findById(request.getManagerId())
                 .orElseThrow(() ->
                         new RuntimeException("Manager not found with id: " + request.getManagerId())
                 );
+
+        String name = request.getName() != null ? request.getName().trim() : "";
+        if (name.isBlank()) {
+            throw new BadRequestException("Project name is required");
+        }
+
+        String projectCompany = manager.getCompany();
+        if (projectCompany == null || projectCompany.isBlank()) {
+            throw new BadRequestException("Manager company is required");
+        }
+        projectCompany = projectCompany.trim();
 
         List<User> members = new ArrayList<>();
         if (request.getMemberIds() != null && !request.getMemberIds().isEmpty()) {
             members = userRepository.findAllById(request.getMemberIds());
         }
 
+        // Company admin can create projects only within their company
+        if (currentUser.getRole() == Role.ADMIN) {
+            String company = requireCompany(currentUser);
+            if (manager.getCompany() == null || !company.equals(manager.getCompany())) {
+                throw new UnauthorizedException("Access denied: Manager belongs to a different company");
+            }
+            boolean hasCrossCompanyMember = members.stream()
+                    .anyMatch(u -> u.getCompany() == null || !company.equals(u.getCompany()));
+            if (hasCrossCompanyMember) {
+                throw new UnauthorizedException("Access denied: One or more members belong to a different company");
+            }
+        }
+
+        if (projectRepository.existsByNameAndCompany(name, projectCompany)) {
+            throw new BadRequestException("Project name already exists in this company");
+        }
+
         Project project = Project.builder()
-                .name(request.getName())
+                .name(name)
                 .description(request.getDescription())
                 .manager(manager)
-                .company(manager.getCompany())
+                .company(projectCompany)
                 .members(members)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -81,20 +114,16 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ProjectResponse> getProjectsForCurrentUser() {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User currentUser = getCurrentUser();
 
         List<Project> projects;
 
-        if (currentUser.getRole().name().equals("ADMIN")) {
-            projects = projectRepository.findAll();
-        } else if (currentUser.getRole().name().equals("MANAGER")) {
-            projects = projectRepository.findByManager(currentUser);
+        if (currentUser.getRole() == Role.ADMIN) {
+            projects = projectRepository.findByCompany(requireCompany(currentUser));
+        } else if (currentUser.getRole() == Role.MANAGER) {
+            projects = projectRepository.findByManagerAndCompany(currentUser, requireCompany(currentUser));
         } else {
-            projects = projectRepository.findByMembersContaining(currentUser);
+            projects = projectRepository.findByMembersContainingAndCompany(currentUser, requireCompany(currentUser));
         }
 
         return projects.stream()
@@ -104,37 +133,25 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<ProjectResponse> getAllProjects() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth != null ? auth.getName() : null;
-
-        // If no authentication, return all projects (shouldn't happen in practice)
-        if (email == null) {
-            return projectRepository.findAll()
-                    .stream()
-                    .map(this::mapToResponse)
-                    .collect(Collectors.toList());
-        }
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User currentUser = getCurrentUser();
 
         List<Project> projects;
 
         // SUPER_ADMIN can see all projects
-        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
             projects = projectRepository.findAll();
         }
-        // ADMIN can see all projects
-        else if (currentUser.getRole().name().equals("ADMIN")) {
-            projects = projectRepository.findAll();
+        // ADMIN can see projects from their company only
+        else if (currentUser.getRole() == Role.ADMIN) {
+            projects = projectRepository.findByCompany(requireCompany(currentUser));
         }
         // MANAGER can see only their projects
-        else if (currentUser.getRole().name().equals("MANAGER")) {
-            projects = projectRepository.findByManager(currentUser);
+        else if (currentUser.getRole() == Role.MANAGER) {
+            projects = projectRepository.findByManagerAndCompany(currentUser, requireCompany(currentUser));
         }
         // ENGINEER and USER can see only projects they're members of
         else {
-            projects = projectRepository.findByMembersContaining(currentUser);
+            projects = projectRepository.findByMembersContainingAndCompany(currentUser, requireCompany(currentUser));
         }
 
         return projects.stream()
@@ -163,10 +180,25 @@ public class ProjectServiceImpl implements ProjectService {
         // Check access permissions
         validateProjectAccess(project);
 
+        User currentUser = getCurrentUser();
+
         String oldName = project.getName();
 
         if (request.getName() != null) {
-            project.setName(request.getName());
+            String nextName = request.getName().trim();
+            if (nextName.isBlank()) {
+                throw new BadRequestException("Project name is required");
+            }
+            String company = project.getCompany();
+            if (company == null || company.isBlank()) {
+                throw new BadRequestException("Project company is required");
+            }
+            company = company.trim();
+            if (!nextName.equalsIgnoreCase(oldName)
+                    && projectRepository.existsByNameAndCompany(nextName, company)) {
+                throw new BadRequestException("Project name already exists in this company");
+            }
+            project.setName(nextName);
         }
 
         if (request.getDescription() != null) {
@@ -176,6 +208,12 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.getManagerId() != null) {
             User manager = userRepository.findById(request.getManagerId())
                     .orElseThrow(() -> new RuntimeException("Manager not found"));
+            if (currentUser.getRole() == Role.ADMIN) {
+                String company = requireCompany(currentUser);
+                if (manager.getCompany() == null || !company.equals(manager.getCompany())) {
+                    throw new UnauthorizedException("Access denied: Manager belongs to a different company");
+                }
+            }
             project.setManager(manager);
             project.setCompany(manager.getCompany());
         }
@@ -185,6 +223,14 @@ public class ProjectServiceImpl implements ProjectService {
 
             if (members.size() != request.getMemberIds().size()) {
                 throw new RuntimeException("One or more members not found");
+            }
+            if (currentUser.getRole() == Role.ADMIN) {
+                String company = requireCompany(currentUser);
+                boolean hasCrossCompanyMember = members.stream()
+                        .anyMatch(u -> u.getCompany() == null || !company.equals(u.getCompany()));
+                if (hasCrossCompanyMember) {
+                    throw new UnauthorizedException("Access denied: One or more members belong to a different company");
+                }
             }
             project.setMembers(members);
         }
@@ -237,40 +283,65 @@ public class ProjectServiceImpl implements ProjectService {
         String email = auth != null ? auth.getName() : null;
 
         if (email == null) {
-            throw new RuntimeException("User not authenticated");
+            throw new UnauthorizedException("User not authenticated");
         }
 
         User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
 
         // SUPER_ADMIN can access any project
-        if (currentUser.getRole().name().equals("SUPER_ADMIN")) {
+        if (currentUser.getRole() == Role.SUPER_ADMIN) {
             return;
         }
 
         // ADMIN can access projects from their company only
-        if (currentUser.getRole().name().equals("ADMIN")) {
-            String userCompany = currentUser.getCompany();
-            String projectManagerCompany = project.getManager() != null ? project.getManager().getCompany() : null;
-
-            if (userCompany == null || !userCompany.equals(projectManagerCompany)) {
-                throw new RuntimeException("Access denied: Project belongs to a different company");
+        if (currentUser.getRole() == Role.ADMIN) {
+            String userCompany = requireCompany(currentUser);
+            String projectCompany = project.getCompany();
+            if (projectCompany == null || !userCompany.equals(projectCompany)) {
+                throw new UnauthorizedException("Access denied: Project belongs to a different company");
             }
             return;
         }
 
         // MANAGER can access projects they manage and only from their company
-        if (currentUser.getRole().name().equals("MANAGER")) {
+        if (currentUser.getRole() == Role.MANAGER) {
             if (!project.getManager().getId().equals(currentUser.getId())) {
-                throw new RuntimeException("Access denied: You can only access projects you manage");
+                throw new UnauthorizedException("Access denied: You can only access projects you manage");
+            }
+            String userCompany = requireCompany(currentUser);
+            String projectCompany = project.getCompany();
+            if (projectCompany == null || !userCompany.equals(projectCompany)) {
+                throw new UnauthorizedException("Access denied: Project belongs to a different company");
             }
             return;
         }
 
         // ENGINEER and USER can access projects they're members of
         if (!project.getMembers().contains(currentUser)) {
-            throw new RuntimeException("Access denied: You are not a member of this project");
+            throw new UnauthorizedException("Access denied: You are not a member of this project");
         }
+    }
+
+    private User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        if (email == null || email.isBlank()) {
+            throw new UnauthorizedException("User not authenticated");
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+    }
+
+    private String requireCompany(User user) {
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            return null;
+        }
+        String company = user.getCompany();
+        if (company == null || company.isBlank()) {
+            throw new UnauthorizedException("Company not set for user");
+        }
+        return company.trim();
     }
 
     private ProjectResponse mapToResponse(Project project) {

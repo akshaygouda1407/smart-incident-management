@@ -32,6 +32,7 @@ import AdminReports from "../pages/admin/AdminReports";
 import ManagerDashboard from "../pages/manager/ManagerDashboard";
 import ManagerAssignedProjects from "../pages/manager/ManagerAssignedProjects";
 import ManagerIssues from "../pages/manager/ManagerIssues";
+import ManagerIssueDetails from "../pages/manager/ManagerIssueDetails";
 import AssignIssues from "../pages/manager/AssignIssues";
 import ManagerResolvedIssues from "../pages/manager/ManagerResolvedIssues";
 import ManagerSlaMonitoring from "../pages/manager/ManagerSlaMonitoring";
@@ -42,6 +43,7 @@ import ManagerReports from "../pages/manager/ManagerReports";
 import EngineerDashboard from "../pages/engineer/EngineerDashboard";
 import EngineerProjectDetails from "../pages/engineer/EngineerProjectDetails";
 import MyEngineerIssues from "../pages/engineer/MyIssues";
+import EngineerIssueDetails from "../pages/engineer/EngineerIssueDetails";
 import EngineerSlaPolicies from "../pages/engineer/EngineerSlaPolicies";
 import EngineerWorkload from "../pages/engineer/EngineerWorkload";
 import EngineerSolvedIssues from "../pages/engineer/EngineerSolvedIssues";
@@ -160,6 +162,7 @@ export default function AppRoutes() {
           <Route path="projects" element={<ManagerAssignedProjects />} />
           <Route path="projects/:projectId" element={<ManagerAssignedProjects />} />
           <Route path="issues" element={<ManagerIssues />} />
+          <Route path="issues/:issueId" element={<ManagerIssueDetails />} />
           <Route path="assign-issues" element={<AssignIssues />} />
           <Route path="resolved-issues" element={<ManagerResolvedIssues />} />
           <Route path="sla-monitoring" element={<ManagerSlaMonitoring />} />
@@ -180,6 +183,7 @@ export default function AppRoutes() {
           <Route path="project" element={<EngineerProjectDetails />} />
           <Route path="project/:projectId" element={<EngineerProjectDetails />} />
           <Route path="issues" element={<MyEngineerIssues />} />
+          <Route path="issues/:issueId" element={<EngineerIssueDetails />} />
           <Route path="sla-policies" element={<EngineerSlaPolicies />} />
           <Route path="workload" element={<EngineerWorkload />} />
           <Route path="solved-issues" element={<EngineerSolvedIssues />} />

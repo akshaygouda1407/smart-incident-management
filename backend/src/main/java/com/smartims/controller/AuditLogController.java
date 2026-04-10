@@ -4,6 +4,7 @@ import com.smartims.dto.ApiResponse;
 import com.smartims.entity.AuditLog;
 import com.smartims.entity.User;
 import com.smartims.enums.Role;
+import com.smartims.exception.UnauthorizedException;
 import com.smartims.repository.AuditLogRepository;
 import com.smartims.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,7 @@ public class AuditLogController {
         } else {
             String company = currentUser.getCompany();
             if (company == null || company.isBlank()) {
-                logs = auditLogRepository.findAll();
+                throw new UnauthorizedException("Company not set for user");
             } else {
                 logs = auditLogRepository.findByActorCompany(company);
             }

@@ -17,6 +17,10 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
     List<Issue> findByAssignedEngineer(User engineer);
     List<Issue> findByCreatedBy(String createdBy);
 
+    List<Issue> findByAssignedEngineerAndProject_Company(User engineer, String company);
+
+    List<Issue> findByCreatedByAndProject_Company(String createdBy, String company);
+
     List<Issue> findByAssignedEngineerId(Long engineerId);
 
     List<Issue> findByStatus(IssueStatus status);
@@ -31,6 +35,8 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
     List<Object[]> countByPriorityGroup();
 
     List<Issue> findBySlaBreachedTrue();
+
+    List<Issue> findBySlaBreachedTrueAndProject_Company(String company);
 
     List<Issue> findByProject(Project project);
 
@@ -49,6 +55,12 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
             List<IssueStatus> statuses
     );
 
+    long countByAssignedEngineerAndStatusInAndProject_Company(
+            User engineer,
+            List<IssueStatus> statuses,
+            String company
+    );
+
     long countByProjectInAndStatusIn(
             List<Project> projects,
             List<IssueStatus> statuses
@@ -59,5 +71,7 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
 
     @Query("SELECT i FROM Issue i WHERE i.project.manager.company = :company")
     List<Issue> findByCompany(@Param("company") String company);
+
+    long deleteByProject_Company(String company);
 
 }

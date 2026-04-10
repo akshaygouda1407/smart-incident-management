@@ -9,4 +9,8 @@ public interface IssueActivityRepository
         extends JpaRepository<IssueActivity, Long> {
 
     List<IssueActivity> findByIssueIdOrderByCreatedAtAsc(Long issueId);
+
+    long deleteByPerformedBy_Id(Long userId);
+
+    long deleteByIssue_Project_Company(String company);
 }

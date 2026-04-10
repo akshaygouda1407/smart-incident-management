@@ -18,4 +18,8 @@ public interface UserNotificationRepository
     Page<UserNotification> findByUser(User user, Pageable pageable);
 
     List<UserNotification> findByUserAndReadFalse(User user);
+
+    long deleteByUser_Id(Long userId);
+
+    long deleteByUser_Company(String company);
 }

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCcw } from "lucide-react";
 import { getAllProjects } from "../../api/projectApi";
-import { getAllUsers } from "../../api/userApi";
-import { getAllIssues } from "../../api/issuesApi";
+import { getAllIssues, getManagerAssignmentBoard } from "../../api/issuesApi";
 import { getManagerWorkload } from "../../api/workloadApi";
 import { useAuth } from "../../context/useAuth";
 import { showError } from "../../utils/toast";
@@ -20,8 +19,14 @@ function getApiMessage(err) {
 
 function unwrapData(res) {
   if (!res) return null;
+  if (res?.data?.data !== undefined) return res.data.data;
   if (res?.data !== undefined) return res.data;
   return res;
+}
+
+function filterIssuesByProjects(issueList, projectList) {
+  const projectIds = new Set((projectList || []).map((p) => String(p?.id)).filter(Boolean));
+  return (issueList || []).filter((issue) => projectIds.has(String(issue?.projectId || "")));
 }
 
 function issueCode(id) {
@@ -51,8 +56,8 @@ function statusBadgeClass(status) {
 export default function ManagerWorkload() {
   const { user } = useAuth();
   const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
   const [issues, setIssues] = useState([]);
+  const [engineers, setEngineers] = useState([]);
   const [managerTotalWorkload, setManagerTotalWorkload] = useState(0);
   const [projectFilter, setProjectFilter] = useState("ALL");
   const [loading, setLoading] = useState(true);
@@ -64,19 +69,21 @@ export default function ManagerWorkload() {
     if (silent) setRefreshing(true);
     setError("");
     try {
-      const [projectRes, userRes, issueRes] = await Promise.all([
+      const [projectRes, issueRes, boardRes] = await Promise.all([
         getAllProjects(),
-        getAllUsers(),
-        getAllIssues()
+        getAllIssues(),
+        getManagerAssignmentBoard()
       ]);
 
       const projectList = Array.isArray(unwrapData(projectRes)) ? unwrapData(projectRes) : [];
-      const userList = Array.isArray(unwrapData(userRes)) ? unwrapData(userRes) : [];
       const issueList = Array.isArray(unwrapData(issueRes)) ? unwrapData(issueRes) : [];
+      const board = unwrapData(boardRes) || {};
+      const engineerList = Array.isArray(board?.engineers) ? board.engineers : [];
+      const scopedIssues = filterIssuesByProjects(issueList, projectList);
 
       setProjects(projectList);
-      setUsers(userList);
-      setIssues(issueList);
+      setIssues(scopedIssues);
+      setEngineers(engineerList);
 
       const managerId = user?.userId;
       if (managerId) {
@@ -85,7 +92,7 @@ export default function ManagerWorkload() {
           setManagerTotalWorkload(Number(unwrapData(workloadRes) || 0));
         } catch {
           setManagerTotalWorkload(
-            issueList.filter((issue) => ACTIVE_STATUSES.has(String(issue?.status || "").toUpperCase())).length
+            scopedIssues.filter((issue) => ACTIVE_STATUSES.has(String(issue?.status || "").toUpperCase())).length
           );
         }
       }
@@ -94,8 +101,8 @@ export default function ManagerWorkload() {
       setError(msg);
       showError(msg);
       setProjects([]);
-      setUsers([]);
       setIssues([]);
+      setEngineers([]);
       setManagerTotalWorkload(0);
     } finally {
       setLoading(false);
@@ -125,31 +132,26 @@ export default function ManagerWorkload() {
   );
 
   const engineersInScope = useMemo(() => {
-    const projectEngineerIds = new Set();
-    projects.forEach((project) => {
-      if (!selectedProjectIds.has(String(project.id))) return;
-      (project?.memberDetails || []).forEach((member) => {
-        if (String(member?.role || "").toUpperCase() === "ENGINEER" && member?.id != null) {
-          projectEngineerIds.add(String(member.id));
-        }
-      });
-    });
-
-    return users
-      .filter((userItem) => String(userItem?.role || "").toUpperCase() === "ENGINEER")
-      .filter((userItem) => projectEngineerIds.has(String(userItem.id)))
-      .sort((a, b) => String(a.fullName || "").localeCompare(String(b.fullName || "")));
-  }, [projects, users, selectedProjectIds]);
+    return engineers
+      .filter((eng) => {
+        const projectIds = Array.isArray(eng?.projectIds) ? eng.projectIds.map((id) => String(id)) : [];
+        if (projectIds.some((id) => selectedProjectIds.has(id))) return true;
+        const assignedIssues = Array.isArray(eng?.assignedIssues) ? eng.assignedIssues : [];
+        return assignedIssues.some((issue) => selectedProjectIds.has(String(issue?.projectId || "")));
+      })
+      .sort((a, b) => String(a?.engineerName || "").localeCompare(String(b?.engineerName || "")));
+  }, [engineers, selectedProjectIds]);
 
   const engineerCards = useMemo(
     () =>
       engineersInScope.map((engineer) => {
-        const assigned = filteredIssues.filter((issue) => String(issue?.assignedEngineerId || "") === String(engineer.id));
+        const engineerId = engineer?.engineerId;
+        const assigned = filteredIssues.filter((issue) => String(issue?.assignedEngineerId || "") === String(engineerId || ""));
         const active = assigned.filter((issue) => ACTIVE_STATUSES.has(String(issue?.status || "").toUpperCase()));
         return {
-          engineerId: engineer.id,
-          name: engineer.fullName || engineer.email || "-",
-          email: engineer.email || "-",
+          engineerId,
+          name: engineer?.engineerName || "-",
+          email: engineer?.engineerEmail || "-",
           activeCount: active.length,
           totalAssignedCount: assigned.length,
           issues: assigned
