@@ -51,8 +51,35 @@ services:
     networks:
       - smartims-network
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: smartims-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9092:9090"
+    networks:
+      - smartims-network
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: smartims-grafana
+    restart: unless-stopped
+    ports:
+      - "3002:3000"
+    volumes:
+      - smartims-grafana-data:/var/lib/grafana
+    networks:
+      - smartims-network
+    depends_on:
+      - prometheus
+
 volumes:
   smartims-postgres-data:
+  smartims-grafana-data:
 
 networks:
   smartims-network:
