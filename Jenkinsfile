@@ -1,10 +1,10 @@
 pipeline {
-    agent anyakshaygouda646
+    agent any
 
     environment {
         BACKEND_IMAGE = "akshaygouda646/smartims-backend"
         FRONTEND_IMAGE = "akshaygouda646/smartims-frontend"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_TAG = "v1"
     }
 
     stages {
@@ -38,7 +38,6 @@ pipeline {
                 sh '''
                     docker build \
                     -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                    -t ${BACKEND_IMAGE}:latest \
                     backend
                 '''
             }
@@ -50,7 +49,6 @@ pipeline {
                     docker build \
                     --build-arg VITE_API_URL=http://54.84.79.139:8081 \
                     -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                    -t ${FRONTEND_IMAGE}:latest \
                     frontend
                 '''
             }
@@ -71,9 +69,7 @@ pipeline {
                         --password-stdin
 
                         docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                        docker push ${BACKEND_IMAGE}:latest
                         docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
-                        docker push ${FRONTEND_IMAGE}:latest
                     '''
                 }
             }
@@ -83,7 +79,8 @@ pipeline {
             steps {
                 sh '''
                     docker compose down
-                    docker compose up -d --build
+                    docker compose pull
+                    docker compose up -d
                 '''
             }
         }
@@ -95,11 +92,11 @@ pipeline {
         }
 
         success {
-            echo 'Smart Incident Management deployment completed.'
+            echo 'Smart Incident Management deployment completed successfully.'
         }
 
         failure {
-            echo 'Pipeline failed. Check the Jenkins console output.'
+            echo 'Smart Incident Management deployment failed.'
         }
     }
 }

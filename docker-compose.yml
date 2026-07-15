@@ -1,12 +1,12 @@
 services:
   postgres:
-    image: postgres:16
+    image: akshaygouda646/smartims-postgres:v1
     container_name: smartims-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: smart_ims
       POSTGRES_USER: akshay_gouda
-      POSTGRES_PASSWORD: Aky@8971
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - smartims-postgres-data:/var/lib/postgresql/data
     networks:
@@ -18,17 +18,16 @@ services:
       retries: 10
 
   backend:
-    build:
-      context: ./backend
+    image: akshaygouda646/smartims-backend:v1
     container_name: smartims-backend
     restart: unless-stopped
     environment:
       DB_URL: jdbc:postgresql://postgres:5432/smart_ims
       DB_USERNAME: akshay_gouda
-      DB_PASSWORD: Aky@8971
-      JWT_SECRET: SmartIncidentManagementJwtSecretKeyMustBeAtLeast32CharactersLong2026
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: 3600000
-      FRONTEND_LOGIN_URL: http://54.84.79.139:8081/login
+      FRONTEND_LOGIN_URL: http://54.84.79.139:5173/login
     ports:
       - "8081:8081"
     depends_on:
@@ -38,10 +37,7 @@ services:
       - smartims-network
 
   frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_URL: http://54.84.79.139:8081
+    image: akshaygouda646/smartims-frontend:v1
     container_name: smartims-frontend
     restart: unless-stopped
     ports:
@@ -52,30 +48,30 @@ services:
       - smartims-network
 
   prometheus:
-    image: prom/prometheus:latest
+    image: akshaygouda646/smartims-prometheus:v1
     container_name: smartims-prometheus
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
       - "9092:9090"
-    networks:
-      - smartims-network
     depends_on:
       - backend
+    networks:
+      - smartims-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: akshaygouda646/smartims-grafana:v1
     container_name: smartims-grafana
     restart: unless-stopped
     ports:
       - "3002:3000"
     volumes:
       - smartims-grafana-data:/var/lib/grafana
-    networks:
-      - smartims-network
     depends_on:
       - prometheus
+    networks:
+      - smartims-network
 
 volumes:
   smartims-postgres-data:
