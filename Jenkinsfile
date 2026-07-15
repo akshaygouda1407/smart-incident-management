@@ -78,7 +78,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-		    cd /home/ubuntu/smart-incident-management-platform
+		    cd /var/lib/jenkins/projects/smart-incident-management-platform
 		    docker compose pull
 		    docker compose up -d --remove-orphans
 		    docker compose ps
