@@ -23,6 +23,22 @@ pipeline {
             }
         }
 
+	stage('SonarQube Analysis') {
+   		 steps {
+       			 dir('backend') {
+           			 withSonarQubeEnv('sonarqube') {
+               				 sh '''
+                   				 chmod +x mvnw
+
+                   				 ./mvnw clean verify sonar:sonar \
+                     					 -Dsonar.projectKey=smart-incident-management \
+                     					 -Dsonar.projectName="Smart Incident Management Backend"
+               				 '''
+            			}
+       			 }
+   		 }
+	}
+
         stage('Frontend Build') {
             steps {
                 sh '''
