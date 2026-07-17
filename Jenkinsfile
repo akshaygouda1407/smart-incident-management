@@ -3,6 +3,7 @@ pipeline {
 
     options {
         skipDefaultCheckout(true)
+        timestamps()
     }
 
     environment {
@@ -25,12 +26,24 @@ pipeline {
             steps {
                 bat '''
                     @echo off
+
                     java -version
+                    if errorlevel 1 exit /b 1
+
                     git --version
+                    if errorlevel 1 exit /b 1
+
                     docker --version
+                    if errorlevel 1 exit /b 1
+
                     docker compose version
+                    if errorlevel 1 exit /b 1
+
                     node --version
+                    if errorlevel 1 exit /b 1
+
                     npm --version
+                    if errorlevel 1 exit /b 1
                 '''
             }
         }
@@ -40,6 +53,7 @@ pipeline {
                 dir('backend') {
                     bat '''
                         @echo off
+
                         call mvnw.cmd clean package -DskipTests
 
                         if errorlevel 1 (
@@ -57,6 +71,7 @@ pipeline {
                     withSonarQubeEnv('Local SonarQube') {
                         bat '''
                             @echo off
+
                             call mvnw.cmd sonar:sonar ^
                               -Dsonar.projectKey=smart-incident-management ^
                               "-Dsonar.projectName=Smart Incident Management Backend"
@@ -84,6 +99,7 @@ pipeline {
                 dir('frontend') {
                     bat '''
                         @echo off
+
                         call npm ci
 
                         if errorlevel 1 (
@@ -106,6 +122,7 @@ pipeline {
             steps {
                 bat '''
                     @echo off
+
                     docker build ^
                       -t %BACKEND_IMAGE%:%IMAGE_TAG% ^
                       backend
@@ -122,6 +139,7 @@ pipeline {
             steps {
                 bat '''
                     @echo off
+
                     docker build ^
                       --build-arg VITE_API_URL=http://localhost:8081 ^
                       -t %FRONTEND_IMAGE%:%IMAGE_TAG% ^
@@ -144,37 +162,34 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    bat '''
-                        @echo off
+                    powershell '''
+                        $ErrorActionPreference = "Stop"
 
-                        docker logout >nul 2>&1
+                        docker logout 2>$null
 
-                        echo %DOCKER_PASSWORD% | docker login ^
-                          --username %DOCKER_USERNAME% ^
-                          --password-stdin
+                        $env:DOCKER_PASSWORD | docker login `
+                            --username $env:DOCKER_USERNAME `
+                            --password-stdin
 
-                        if errorlevel 1 (
-                            echo Docker Hub login failed.
-                            exit /b 1
-                        )
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Docker Hub login failed"
+                        }
 
-                        echo Docker Hub login succeeded.
+                        Write-Host "Docker Hub login succeeded"
 
-                        docker push %BACKEND_IMAGE%:%IMAGE_TAG%
+                        docker push "$env:BACKEND_IMAGE`:$env:IMAGE_TAG"
 
-                        if errorlevel 1 (
-                            echo Backend Docker image push failed.
-                            exit /b 1
-                        )
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Backend Docker image push failed"
+                        }
 
-                        docker push %FRONTEND_IMAGE%:%IMAGE_TAG%
+                        docker push "$env:FRONTEND_IMAGE`:$env:IMAGE_TAG"
 
-                        if errorlevel 1 (
-                            echo Frontend Docker image push failed.
-                            exit /b 1
-                        )
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Frontend Docker image push failed"
+                        }
 
-                        echo Both Docker images pushed successfully.
+                        Write-Host "Both Docker images pushed successfully"
                     '''
                 }
             }
@@ -200,6 +215,11 @@ pipeline {
                     )
 
                     docker compose ps
+
+                    if errorlevel 1 (
+                        echo Unable to display Docker Compose services.
+                        exit /b 1
+                    )
                 '''
             }
         }
@@ -207,10 +227,9 @@ pipeline {
 
     post {
         always {
-            bat '''
-                @echo off
-                docker logout >nul 2>&1
-                exit /b 0
+            powershell '''
+                docker logout 2>$null
+                exit 0
             '''
         }
 
