@@ -71,7 +71,7 @@ pipeline {
             steps {
                 sh '''
                     docker build \
-                    --build-arg VITE_API_URL=http://54.84.79.139:8081 \
+                    --build-arg VITE_API_URL=http://localhost:8081 \
                     -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
                     frontend
                 '''
