@@ -1,10 +1,17 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     environment {
-        BACKEND_IMAGE = "akshaygouda646/smartims-backend"
-        FRONTEND_IMAGE = "akshaygouda646/smartims-frontend"
-        IMAGE_TAG = "v1"
+        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-21.0.11'
+        PATH = "${JAVA_HOME}\\bin;${env.PATH}"
+
+        BACKEND_IMAGE = 'akshaygouda646/smartims-backend'
+        FRONTEND_IMAGE = 'akshaygouda646/smartims-frontend'
+        IMAGE_TAG = 'v1'
     }
 
     stages {
@@ -14,66 +21,85 @@ pipeline {
             }
         }
 
-        stage('Backend Build') {
+        stage('Environment Check') {
             steps {
-                sh '''
-                    chmod +x backend/mvnw
-                    backend/mvnw -f backend/pom.xml clean package -DskipTests
+                bat '''
+                    @echo off
+                    java -version
+                    git --version
+                    docker --version
+                    docker compose version
+                    node --version
+                    npm --version
                 '''
             }
         }
 
-	stage('SonarQube Analysis') {
-   		 steps {
-       			 dir('backend') {
-           			 withSonarQubeEnv('sonarqube') {
-               				 sh '''
-                   				 chmod +x mvnw
+        stage('Backend Build') {
+            steps {
+                dir('backend') {
+                    bat '''
+                        @echo off
+                        call mvnw.cmd clean package -DskipTests
+                    '''
+                }
+            }
+        }
 
-                   				 ./mvnw clean verify sonar:sonar \
-                     					 -Dsonar.projectKey=smart-incident-management \
-                     					 -Dsonar.projectName="Smart Incident Management Backend"
-               				 '''
-            			}
-       			 }
-   		 }
-	}
+        stage('SonarQube Analysis') {
+            steps {
+                dir('backend') {
+                    withSonarQubeEnv('Local SonarQube') {
+                        bat '''
+                            @echo off
+                            call mvnw.cmd sonar:sonar ^
+                              -Dsonar.projectKey=smart-incident-management ^
+                              "-Dsonar.projectName=Smart Incident Management Backend"
+                        '''
+                    }
+                }
+            }
+        }
 
-	stage('Quality Gate') {
-   		 steps {
-       			 timeout(time: 5, unit: 'MINUTES') {
-           			 waitForQualityGate abortPipeline: true
-       			 }
-   		 }
-	}
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
         stage('Frontend Build') {
             steps {
-                sh '''
-                    cd frontend
-                    npm ci
-                    npm run build
-                '''
+                dir('frontend') {
+                    bat '''
+                        @echo off
+                        call npm ci
+                        call npm run build
+                    '''
+                }
             }
         }
 
         stage('Backend Docker Build') {
             steps {
-                sh '''
-                    docker build \
-                    -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                    backend
+                bat '''
+                    @echo off
+                    docker build ^
+                      -t %BACKEND_IMAGE%:%IMAGE_TAG% ^
+                      backend
                 '''
             }
         }
 
         stage('Frontend Docker Build') {
             steps {
-                sh '''
-                    docker build \
-                    --build-arg VITE_API_URL=http://localhost:8081 \
-                    -t ${FRONTEND_IMAGE}:${IMAGE_TAG} \
-                    frontend
+                bat '''
+                    @echo off
+                    docker build ^
+                      --build-arg VITE_API_URL=http://localhost:8081 ^
+                      -t %FRONTEND_IMAGE%:%IMAGE_TAG% ^
+                      frontend
                 '''
             }
         }
@@ -87,13 +113,14 @@ pipeline {
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
                 ]) {
-                    sh '''
-                        echo "$DOCKER_PASSWORD" | docker login \
-                        -u "$DOCKER_USERNAME" \
-                        --password-stdin
+                    bat '''
+                        @echo off
+                        echo %DOCKER_PASSWORD% | docker login ^
+                          -u %DOCKER_USERNAME% ^
+                          --password-stdin
 
-                        docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
-                        docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                        docker push %BACKEND_IMAGE%:%IMAGE_TAG%
+                        docker push %FRONTEND_IMAGE%:%IMAGE_TAG%
                     '''
                 }
             }
@@ -101,11 +128,11 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh '''
-		    cd /var/lib/jenkins/projects/smart-incident-management-platform
-		    docker compose pull
-		    docker compose up -d --remove-orphans
-		    docker compose ps
+                bat '''
+                    @echo off
+                    docker compose pull
+                    docker compose up -d --remove-orphans
+                    docker compose ps
                 '''
             }
         }
@@ -113,7 +140,11 @@ pipeline {
 
     post {
         always {
-            sh 'docker logout || true'
+            bat '''
+                @echo off
+                docker logout
+                exit /b 0
+            '''
         }
 
         success {
@@ -121,7 +152,7 @@ pipeline {
         }
 
         failure {
-            echo 'Smart Incident Management deployment failed.'
+            echo 'Smart Incident Management deployment failed. Check Console Output.'
         }
     }
 }
