@@ -25,19 +25,32 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/smart_ims
       DB_USERNAME: akshay_gouda
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+
       JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION: 3600000
-      FRONTEND_LOGIN_URL: http://54.84.79.139:5173/login
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+
+      FRONTEND_LOGIN_URL: http://localhost:5173/login
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+
     ports:
       - "8081:8081"
+
     depends_on:
       postgres:
         condition: service_healthy
+
     networks:
       - smartims-network
 
   frontend:
-    image: akshaygouda646/smartims-frontend:v1
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8081
+    image: smartims-frontend-local:v1
     container_name: smartims-frontend
     restart: unless-stopped
     ports:
@@ -72,10 +85,27 @@ services:
       - prometheus
     networks:
       - smartims-network
+  
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: smartims-sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - smartims-sonarqube-data:/opt/sonarqube/data
+      - smartims-sonarqube-logs:/opt/sonarqube/logs
+      - smartims-sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - smartims-network
+
 
 volumes:
   smartims-postgres-data:
   smartims-grafana-data:
+  smartims-sonarqube-data:
+  smartims-sonarqube-logs:
+  smartims-sonarqube-extensions:
 
 networks:
   smartims-network:
