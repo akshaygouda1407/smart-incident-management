@@ -157,6 +157,8 @@ pipeline {
         stage('Docker Environment') {
             steps {
                 powershell '''
+                    $ErrorActionPreference = "Stop"
+
                     Write-Host "===== Docker Environment ====="
 
                     Write-Host "Current Windows account:"
@@ -179,6 +181,11 @@ pipeline {
 
                     Write-Host ""
 
+                    Write-Host "Docker contexts:"
+                    docker context ls
+
+                    Write-Host ""
+
                     docker version
 
                     if ($LASTEXITCODE -ne 0) {
@@ -192,7 +199,7 @@ pipeline {
             steps {
                 withCredentials([
                     usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
+                        credentialsId: 'dockerhub-pat-v2',
                         usernameVariable: 'DOCKER_USERNAME',
                         passwordVariable: 'DOCKER_PASSWORD'
                     )
@@ -210,17 +217,30 @@ pipeline {
                         Write-Host "Password Length: $($env:DOCKER_PASSWORD.Length)"
                         Write-Host "Attempting Docker Hub login..."
 
-                        docker logout 2>$null
+                        $tempFile = Join-Path $env:TEMP "docker-pat-$PID.txt"
 
-                        $env:DOCKER_PASSWORD | docker login `
-                            --username $env:DOCKER_USERNAME `
-                            --password-stdin
+                        try {
+                            [System.IO.File]::WriteAllText(
+                                $tempFile,
+                                $env:DOCKER_PASSWORD,
+                                [System.Text.Encoding]::ASCII
+                            )
 
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker Hub login failed"
+                            docker logout 2>$null
+
+                            cmd.exe /D /S /C "type `"$tempFile`" | docker login --username $env:DOCKER_USERNAME --password-stdin"
+
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "Docker Hub login failed"
+                            }
+
+                            Write-Host "Docker Hub login successful"
                         }
-
-                        Write-Host "Docker Hub login successful"
+                        finally {
+                            if (Test-Path $tempFile) {
+                                Remove-Item $tempFile -Force
+                            }
+                        }
                     '''
                 }
             }
@@ -282,6 +302,8 @@ pipeline {
         stage('Health Check') {
             steps {
                 powershell '''
+                    $ErrorActionPreference = "Stop"
+
                     Write-Host "Waiting for backend startup..."
                     Start-Sleep -Seconds 20
 
