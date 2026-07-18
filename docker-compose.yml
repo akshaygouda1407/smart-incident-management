@@ -50,7 +50,7 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: http://localhost:8081
-    image: smartims-frontend-local:v1
+    image: akshaygouda646/smartims-frontend:v1
     container_name: smartims-frontend
     restart: unless-stopped
     ports:
@@ -85,7 +85,7 @@ services:
       - prometheus
     networks:
       - smartims-network
-  
+
   sonarqube:
     image: sonarqube:lts-community
     container_name: smartims-sonarqube
@@ -98,7 +98,6 @@ services:
       - smartims-sonarqube-extensions:/opt/sonarqube/extensions
     networks:
       - smartims-network
-
 
 volumes:
   smartims-postgres-data:
